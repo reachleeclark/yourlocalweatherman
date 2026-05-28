@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your Local Weatherman | Clearer Weather. Better Decisions.</title>
+  <meta name="description" content="Practical local weather guidance without the noise." />
+  <link rel="preconnect" href="https://api.weather.gov">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Your Local Weatherman home">
+      <img src="assets/logo.png" alt="Your Local Weatherman" />
+    </a>
+    <nav class="nav" aria-label="Primary navigation">
+      <a href="#forecast">Forecast</a>
+      <a href="#guidance">Guidance</a>
+      <a href="#alerts">Alerts</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="atmosphere"></div>
+      <div class="hero-content">
+        <p class="eyebrow">Weather without the noise</p>
+        <h1>Clearer Weather.<br>Better Decisions.</h1>
+        <p class="hero-copy">Fast, calm, plain-English weather guidance built around what actually matters: your day, your plans, and your peace of mind.</p>
+
+        <form id="weatherForm" class="search-card">
+          <label for="locationInput">Enter a city or ZIP</label>
+          <div class="search-row">
+            <input id="locationInput" type="text" placeholder="Wichita, KS" autocomplete="postal-code" />
+            <button type="submit">Get Weather</button>
+          </div>
+          <button type="button" id="geoButton" class="ghost-button">Use my location</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="forecast" class="panel forecast-panel">
+      <div class="section-heading">
+        <p class="eyebrow">Local snapshot</p>
+        <h2 id="placeName">Start with your location</h2>
+      </div>
+      <div class="weather-grid">
+        <article class="current-card big-card">
+          <span class="label">Now</span>
+          <strong id="currentTemp">--°</strong>
+          <p id="currentSummary">Enter your location to see current guidance.</p>
+        </article>
+        <article class="big-card">
+          <span class="label">Today</span>
+          <h3 id="todayTitle">Practical forecast</h3>
+          <p id="todayText">We’ll translate the forecast into simple, useful guidance.</p>
+        </article>
+      </div>
+      <div id="hourlyStrip" class="hourly-strip" aria-live="polite"></div>
+    </section>
+
+    <section id="guidance" class="panel dark-panel">
+      <div class="section-heading">
+        <p class="eyebrow">What this means</p>
+        <h2>Simple guidance for real life.</h2>
+      </div>
+      <div class="guidance-grid">
+        <article class="guidance-card"><span>01</span><h3>Outdoor plans</h3><p id="outdoorGuidance">We’ll flag rain, heat, wind, or storm timing clearly.</p></article>
+        <article class="guidance-card"><span>02</span><h3>Driving</h3><p id="driveGuidance">We’ll call out wind, visibility, slick roads, and commute risk.</p></article>
+        <article class="guidance-card"><span>03</span><h3>Property prep</h3><p id="prepGuidance">We’ll identify when vehicles, outdoor items, or travel plans need attention.</p></article>
+      </div>
+    </section>
+
+    <section id="alerts" class="panel alerts-panel">
+      <div class="section-heading">
+        <p class="eyebrow">NOAA / NWS alerts</p>
+        <h2>Calm, clear severe weather awareness.</h2>
+      </div>
+      <div id="alertsList" class="alerts-list">
+        <p class="muted">Enter a location to check active National Weather Service alerts.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>© <span id="year"></span> Your Local Weatherman. Clearer Weather. Better Decisions.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
