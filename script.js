@@ -5,7 +5,7 @@ async function getWeather() {
   const apiKey = "1d580865d7039710695991aae9a625f6";
 
   const url =
-    `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=imperial&appid=${apiKey}`;
+    `https://api.openweathermap.org/data/2.5/weather?zip=${city},US&units=imperial&appid=${apiKey}`;
 
   try {
 
