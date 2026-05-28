@@ -2,86 +2,68 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Your Local Weatherman</title>
-
-  <link rel="stylesheet" href="styles.css"/>
-
-  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- HERO -->
   <section class="hero">
-
     <div class="hero-overlay"></div>
 
-    <img src="assets/hero.jpg" class="hero-image">
-
     <div class="hero-content">
-      <img src="assets/YourLocalWeatherman_Logo.png" class="logo">
-
+      <div class="brand-mark">☀️</div>
       <h1>Your Local Weatherman</h1>
-
-      <p>
-        Calm, simple weather guidance for real life.
-      </p>
+      <p>Calm, simple weather guidance for real life.</p>
 
       <div class="search-box">
-        <input type="text" id="cityInput" placeholder="Enter city or ZIP code">
+        <input id="cityInput" type="text" placeholder="Enter ZIP code, like 67217" />
         <button onclick="getWeather()">Get Forecast</button>
       </div>
     </div>
-
   </section>
 
-  <!-- WEATHER RESULTS -->
-  <section class="weather-section">
-
-    <div id="weatherResult" class="weather-grid"></div>
-
-  </section>
-
-  <!-- GUIDANCE -->
-  <section class="guidance-section">
-
-    <h2>Simple Guidance for Real Life</h2>
-
-    <div class="guidance-grid">
-
-      <div class="guide-card">
-        <i data-feather="umbrella"></i>
-        <h3>Take an Umbrella</h3>
-        <p>Rain expected this afternoon. Be prepared before heading out.</p>
+  <main>
+    <section class="weather-section">
+      <div id="weatherResult" class="weather-container">
+        <div class="welcome-card">
+          <h2>Know what’s coming.</h2>
+          <p>Enter your ZIP code to get current conditions, forecast windows, and practical guidance.</p>
+        </div>
       </div>
+    </section>
 
-      <div class="guide-card">
-        <i data-feather="wind"></i>
-        <h3>Strong Winds</h3>
-        <p>Secure patio furniture and drive carefully on highways.</p>
+    <section class="guidance-section">
+      <h2>Simple Weather Guidance</h2>
+
+      <div class="guidance-grid">
+        <div class="guide-card">
+          <div class="guide-icon">🚗</div>
+          <h3>Drive Smarter</h3>
+          <p>Plan around wind, rain, heat, cold, and visibility before you leave.</p>
+        </div>
+
+        <div class="guide-card">
+          <div class="guide-icon">🏠</div>
+          <h3>Protect Home</h3>
+          <p>Get a clearer sense of what weather could impact your day at home.</p>
+        </div>
+
+        <div class="guide-card">
+          <div class="guide-icon">🌧️</div>
+          <h3>Prepare Earlier</h3>
+          <p>See upcoming forecast windows so you are not surprised later.</p>
+        </div>
+
+        <div class="guide-card">
+          <div class="guide-icon">☀️</div>
+          <h3>Keep It Simple</h3>
+          <p>No clutter. No panic. Just plain-English weather help.</p>
+        </div>
       </div>
-
-      <div class="guide-card">
-        <i data-feather="sun"></i>
-        <h3>UV Alert</h3>
-        <p>High UV levels today. Sunscreen recommended.</p>
-      </div>
-
-      <div class="guide-card">
-        <i data-feather="cloud-snow"></i>
-        <h3>Cold Conditions</h3>
-        <p>Possible overnight freeze. Protect plants and pets.</p>
-      </div>
-
-    </div>
-
-  </section>
+    </section>
+  </main>
 
   <script src="script.js"></script>
-
-  <script>
-    feather.replace()
-  </script>
-
 </body>
 </html>
