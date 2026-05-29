@@ -5,6 +5,7 @@ const cityInput = document.getElementById("cityInput");
 const locationSuggestions = document.getElementById("locationSuggestions");
 
 let selectedLocation = null;
+let extendedOutlookHTML = "";
 
 cityInput.addEventListener("input", async () => {
   const query = cityInput.value.trim();
@@ -13,14 +14,14 @@ cityInput.addEventListener("input", async () => {
   if (query.length < 2) return;
 
   try {
-    let geoUrl;
+    locationSuggestions.innerHTML = "";
 
     if (/^\d{5}$/.test(query)) {
-      geoUrl = `https://api.openweathermap.org/geo/1.0/zip?zip=${query},US&appid=${apiKey}`;
-      const response = await fetch(geoUrl);
-      const data = await response.json();
+      const response = await fetch(
+        `https://api.openweathermap.org/geo/1.0/zip?zip=${query},US&appid=${apiKey}`
+      );
 
-      locationSuggestions.innerHTML = "";
+      const data = await response.json();
 
       if (data.name) {
         const option = document.createElement("option");
@@ -33,11 +34,11 @@ cityInput.addEventListener("input", async () => {
       return;
     }
 
-    geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${apiKey}`;
-    const response = await fetch(geoUrl);
-    const data = await response.json();
+    const response = await fetch(
+      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${apiKey}`
+    );
 
-    locationSuggestions.innerHTML = "";
+    const data = await response.json();
 
     data.forEach(place => {
       const label = `${place.name}${place.state ? ", " + place.state : ""}, ${place.country}`;
@@ -79,21 +80,18 @@ async function getWeather() {
   }
 
   if (/^\d{5}$/.test(query)) {
-    const currentUrl =
-      `https://api.openweathermap.org/data/2.5/weather?zip=${query},US&units=imperial&appid=${apiKey}`;
-
-    const forecastUrl =
-      `https://api.openweathermap.org/data/2.5/forecast?zip=${query},US&units=imperial&appid=${apiKey}`;
-
-    loadWeather(currentUrl, forecastUrl);
+    loadWeather(
+      `https://api.openweathermap.org/data/2.5/weather?zip=${query},US&units=imperial&appid=${apiKey}`,
+      `https://api.openweathermap.org/data/2.5/forecast?zip=${query},US&units=imperial&appid=${apiKey}`
+    );
     return;
   }
 
   try {
-    const geoUrl =
-      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${apiKey}`;
+    const response = await fetch(
+      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${apiKey}`
+    );
 
-    const response = await fetch(geoUrl);
     const data = await response.json();
 
     if (!data.length) throw new Error("Location not found");
@@ -119,24 +117,15 @@ function getWeatherByLocation() {
 }
 
 function loadWeatherByCoords(lat, lon) {
-  const currentUrl =
-    `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`;
-
-  const forecastUrl =
-    `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`;
-
-  loadWeather(currentUrl, forecastUrl);
+  loadWeather(
+    `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`,
+    `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`
+  );
 }
 
 async function loadWeather(currentUrl, forecastUrl) {
   try {
-    document.getElementById("weatherResult").innerHTML = `
-      <div class="welcome-card">
-        <div class="welcome-icon">⏳</div>
-        <h2>Loading your forecast...</h2>
-        <p>Checking current conditions and forecast windows.</p>
-      </div>
-    `;
+    showMessage("Loading your forecast...", "Checking current conditions and forecast windows.");
 
     const currentResponse = await fetch(currentUrl);
     const forecastResponse = await fetch(forecastUrl);
@@ -148,14 +137,11 @@ async function loadWeather(currentUrl, forecastUrl) {
     const currentData = await currentResponse.json();
     const forecastData = await forecastResponse.json();
 
-    const lat = currentData.coord.lat;
-    const lon = currentData.coord.lon;
-
     let airData = null;
 
     try {
       const airResponse = await fetch(
-        `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`
+        `https://api.openweathermap.org/data/2.5/air_pollution?lat=${currentData.coord.lat}&lon=${currentData.coord.lon}&appid=${apiKey}`
       );
       airData = await airResponse.json();
     } catch {
@@ -175,7 +161,8 @@ function renderWeather(currentData, forecastData, airData) {
   const humidity = currentData.main.humidity;
   const wind = Math.round(currentData.wind.speed);
   const description = currentData.weather[0].description;
-  const currentIcon = getWeatherIcon(currentData.weather[0].main);
+  const condition = currentData.weather[0].main;
+  const currentIcon = getWeatherIcon(condition);
 
   const sunrise = formatTime(currentData.sys.sunrise);
   const sunset = formatTime(currentData.sys.sunset);
@@ -196,6 +183,8 @@ function renderWeather(currentData, forecastData, airData) {
     `;
   }).join("");
 
+  extendedOutlookHTML = buildExtendedOutlook(forecastData);
+
   document.getElementById("weatherResult").innerHTML = `
     <div class="current-weather-card">
       <div class="current-left">
@@ -212,6 +201,14 @@ function renderWeather(currentData, forecastData, airData) {
         <div><span>Feels Like</span><strong>${feelsLike}°F</strong></div>
         <div><span>Humidity</span><strong>${humidity}%</strong></div>
         <div><span>Wind</span><strong>${wind} mph</strong></div>
+      </div>
+    </div>
+
+    <div class="note-card">
+      <div class="note-icon">💬</div>
+      <div>
+        <h3>Weatherman’s Note</h3>
+        <p>${getWeatherNote(temp, wind, description)}</p>
       </div>
     </div>
 
@@ -244,34 +241,96 @@ function renderWeather(currentData, forecastData, airData) {
     </div>
 
     <div class="details-grid">
-      <div class="detail-card">
-        <div class="detail-icon">🌅</div>
-        <h3>Sunrise</h3>
-        <strong>${sunrise}</strong>
+      <div class="image-detail-card sunrise-bg">
+        <div class="image-overlay"></div>
+        <div class="image-detail-content">
+          <h3>Sunrise</h3>
+          <strong>${sunrise}</strong>
+        </div>
       </div>
 
-      <div class="detail-card">
-        <div class="detail-icon">🌇</div>
-        <h3>Sunset</h3>
-        <strong>${sunset}</strong>
+      <div class="image-detail-card sunset-bg">
+        <div class="image-overlay"></div>
+        <div class="image-detail-content">
+          <h3>Sunset</h3>
+          <strong>${sunset}</strong>
+        </div>
       </div>
 
-      <div class="detail-card">
-        <div class="detail-icon">🌬️</div>
-        <h3>Air Quality</h3>
-        <strong>${airQuality}</strong>
+      <div class="image-detail-card air-bg">
+        <div class="image-overlay"></div>
+        <div class="image-detail-content">
+          <h3>Air Quality</h3>
+          <strong>${airQuality}</strong>
+        </div>
       </div>
     </div>
 
     <div class="forecast-heading">
-      <h2>Next Forecast Windows</h2>
-      <p>Forecast data updates in 3-hour blocks.</p>
+      <h2>Your Day Ahead</h2>
+      <p>Forecast updates in 3-hour intervals.</p>
     </div>
 
     <div class="forecast-grid">
       ${forecastCards}
     </div>
+
+    <div class="extended-toggle-wrap">
+      <button class="extended-btn" onclick="toggleExtendedOutlook()">Show Extended Outlook</button>
+    </div>
+
+    <div id="extendedOutlook" class="extended-outlook"></div>
   `;
+}
+
+function buildExtendedOutlook(forecastData) {
+  const daily = {};
+
+  forecastData.list.forEach(item => {
+    const date = new Date(item.dt * 1000);
+    const key = date.toLocaleDateString();
+
+    if (!daily[key]) {
+      daily[key] = {
+        day: date.toLocaleDateString([], { weekday: "short" }),
+        temps: [],
+        condition: item.weather[0].main,
+        description: item.weather[0].description
+      };
+    }
+
+    daily[key].temps.push(item.main.temp);
+  });
+
+  return Object.values(daily).slice(0, 5).map(day => {
+    const high = Math.round(Math.max(...day.temps));
+    const low = Math.round(Math.min(...day.temps));
+
+    return `
+      <div class="forecast-card extended-card">
+        <div class="forecast-day">${day.day}</div>
+        <div class="forecast-icon">${getWeatherIcon(day.condition)}</div>
+        <div class="forecast-temp">${high}° / ${low}°</div>
+        <div class="forecast-desc">${day.description}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function toggleExtendedOutlook() {
+  const container = document.getElementById("extendedOutlook");
+
+  if (container.innerHTML.trim()) {
+    container.innerHTML = "";
+  } else {
+    container.innerHTML = `
+      <div class="forecast-heading extended-heading">
+        <h2>Extended Outlook</h2>
+        <p>A simple multi-day look based on available forecast data.</p>
+      </div>
+      <div class="forecast-grid">${extendedOutlookHTML}</div>
+    `;
+  }
 }
 
 function getWeatherIcon(condition) {
@@ -285,6 +344,20 @@ function getWeatherIcon(condition) {
   return "🌤️";
 }
 
+function getWeatherNote(temp, wind, description) {
+  const text = description.toLowerCase();
+
+  if (text.includes("rain")) return "Grab the galoshes — it’s wet out there.";
+  if (text.includes("storm") || text.includes("thunder")) return "Keep one eye on the sky today. Storms can change plans quickly.";
+  if (temp >= 90) return "It’s a hot one. Shade, water, and a little common sense go a long way.";
+  if (temp <= 35) return "Bundle up. This is the kind of cold that sneaks into your sleeves.";
+  if (wind >= 20) return "Hold onto your hat — it’s breezier than it may look.";
+  if (text.includes("clear")) return "Pretty nice setup today. A good day to enjoy the sky.";
+  if (text.includes("cloud")) return "A little gray, but not necessarily gloomy. Keep an eye on changes.";
+
+  return "Nothing too dramatic right now. A good day to check the forecast before heading out.";
+}
+
 function getPlainEnglishGuidance(temp, wind, description) {
   const text = description.toLowerCase();
 
@@ -294,7 +367,7 @@ function getPlainEnglishGuidance(temp, wind, description) {
   if (temp >= 90) return "It is hot today. Stay hydrated, limit long outdoor stretches, and check on pets or anyone sensitive to heat.";
   if (temp <= 35) return "Cold conditions are in place. Dress in layers and watch for slick spots if moisture is nearby.";
 
-  return "Conditions look manageable right now. Use the forecast windows below to plan the rest of your day.";
+  return "Conditions look manageable right now. Use the forecast below to plan the rest of your day.";
 }
 
 function getVehicleTip(temp, wind, description) {
@@ -364,39 +437,3 @@ function openContactForm() {
 function closeContactForm() {
   document.getElementById("contactModal").classList.remove("active");
 }
-
-document.getElementById("contactForm").addEventListener("submit", async function(e) {
-  e.preventDefault();
-
-  const formStatus = document.getElementById("formStatus");
-
-  if (contactAccessKey === "PASTE_YOUR_WEB3FORMS_ACCESS_KEY_HERE") {
-    formStatus.textContent = "Contact form needs a Web3Forms access key before it can send.";
-    return;
-  }
-
-  const formData = new FormData(this);
-  formData.append("access_key", contactAccessKey);
-  formData.append("subject", "New message from Your Local Weatherman");
-
-  formStatus.textContent = "Sending...";
-
-  try {
-    const response = await fetch("https://api.web3forms.com/submit", {
-      method: "POST",
-      body: formData
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      formStatus.textContent = "Thanks! Your message has been sent.";
-      this.reset();
-    } else {
-      formStatus.textContent = "Something went wrong. Please try again.";
-    }
-
-  } catch {
-    formStatus.textContent = "Unable to send message right now.";
-  }
-});
