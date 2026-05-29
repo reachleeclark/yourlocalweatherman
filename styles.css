@@ -11,13 +11,13 @@ body{
 }
 
 .hero{
-  min-height:82vh;
+  min-height:70vh;
   position:relative;
   display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
-  padding:40px 20px;
+  padding:34px 20px 24px;
   overflow:hidden;
   background:
     linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,.62)),
@@ -41,13 +41,13 @@ body{
 .logo{
   width:285px;
   max-width:82%;
-  margin-bottom:26px;
+  margin-bottom:22px;
 }
 
 .hero-tagline{
   font-size:1.4rem;
   color:#29445a;
-  margin-bottom:35px;
+  margin-bottom:30px;
 }
 
 .search-box{
@@ -99,14 +99,14 @@ body{
 }
 
 .location-btn{
-  margin-top:16px;
+  margin-top:14px;
   background:white;
   color:#12769a;
   font-size:17px;
 }
 
 .saved-locations{
-  margin-top:18px;
+  margin-top:14px;
   display:flex;
   justify-content:center;
   gap:10px;
@@ -124,7 +124,9 @@ body{
 }
 
 .weather-section{
-  padding:70px 24px;
+  padding:42px 24px 70px;
+  background:
+    linear-gradient(to bottom, #f3f8fb 0%, #f3f8fb 65%, rgba(235,247,252,.9) 100%);
 }
 
 .weather-container{
@@ -268,6 +270,7 @@ body{
   gap:22px;
   padding:34px;
   margin-bottom:30px;
+  background:linear-gradient(145deg,#ffffff,#f2fbff);
 }
 
 .note-icon{
@@ -366,6 +369,13 @@ body{
   height:420px;
   border-radius:24px;
   overflow:hidden;
+  background:#d9eef7;
+}
+
+.radar-status{
+  margin-top:12px;
+  color:#61798d;
+  font-size:.95rem;
 }
 
 .forecast-heading{
@@ -395,11 +405,41 @@ body{
   padding:26px 20px;
   text-align:center;
   transition:.25s;
+  position:relative;
+  overflow:hidden;
 }
 
 .forecast-card:hover,
 .quick-card:hover{
   transform:translateY(-5px);
+}
+
+.condition-clear{
+  background:linear-gradient(145deg,#ffffff,#fff4c7);
+}
+
+.condition-cloud{
+  background:linear-gradient(145deg,#ffffff,#eaf1f7);
+}
+
+.condition-rain{
+  background:linear-gradient(145deg,#ffffff,#dfefff);
+}
+
+.condition-storm{
+  background:linear-gradient(145deg,#ffffff,#e8e2ff);
+}
+
+.condition-snow{
+  background:linear-gradient(145deg,#ffffff,#effbff);
+}
+
+.condition-fog{
+  background:linear-gradient(145deg,#ffffff,#eef3f4);
+}
+
+.condition-default{
+  background:linear-gradient(145deg,#ffffff,#eef9fd);
 }
 
 .forecast-day{
@@ -431,8 +471,12 @@ body{
 }
 
 .site-footer{
-  padding:34px 24px;
-  background:white;
+  padding:56px 24px 34px;
+  background:
+    linear-gradient(rgba(255,255,255,.72),rgba(255,255,255,.95)),
+    url("https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1600&q=80");
+  background-size:cover;
+  background-position:center bottom;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -501,11 +545,18 @@ body{
 
 @media(max-width:850px){
   .hero{
-    min-height:76vh;
+    min-height:66vh;
+    padding-top:28px;
+    padding-bottom:20px;
+  }
+
+  .logo{
+    width:250px;
   }
 
   .hero-tagline{
     font-size:1.1rem;
+    margin-bottom:24px;
   }
 
   .search-box{
@@ -517,6 +568,10 @@ body{
   .search-box button,
   .location-btn{
     width:100%;
+  }
+
+  .weather-section{
+    padding-top:34px;
   }
 
   .current-weather-card{
