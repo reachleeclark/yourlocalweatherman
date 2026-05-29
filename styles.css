@@ -10,8 +10,6 @@ body{
   color:#132235;
 }
 
-/* HERO */
-
 .hero{
   min-height:82vh;
   position:relative;
@@ -22,7 +20,7 @@ body{
   padding:40px 20px;
   overflow:hidden;
   background:
-    linear-gradient(rgba(255,255,255,.15), rgba(255,255,255,.55)),
+    linear-gradient(rgba(255,255,255,.18), rgba(255,255,255,.58)),
     url("https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1800&q=85");
   background-size:cover;
   background-position:center;
@@ -67,9 +65,13 @@ body{
   flex-wrap:wrap;
 }
 
-.search-box input{
+.input-wrap{
   width:420px;
   max-width:100%;
+}
+
+.search-box input{
+  width:100%;
   padding:20px 24px;
   border:none;
   border-radius:18px;
@@ -79,7 +81,9 @@ body{
 }
 
 .search-box button,
-.location-btn{
+.location-btn,
+.site-footer button,
+.modal-content button{
   padding:20px 34px;
   border:none;
   border-radius:18px;
@@ -93,7 +97,9 @@ body{
 }
 
 .search-box button:hover,
-.location-btn:hover{
+.location-btn:hover,
+.site-footer button:hover,
+.modal-content button:hover{
   background:#078fc0;
   transform:translateY(-2px);
 }
@@ -104,8 +110,6 @@ body{
   color:#12769a;
   font-size:17px;
 }
-
-/* WEATHER */
 
 .weather-section{
   padding:70px 24px;
@@ -122,8 +126,7 @@ body{
 .advice-card,
 .quick-card,
 .detail-card,
-.forecast-card,
-.mini-card{
+.forecast-card{
   background:rgba(255,255,255,.94);
   border:1px solid rgba(176,213,229,.55);
   border-radius:30px;
@@ -223,8 +226,6 @@ body{
   font-size:1.25rem;
 }
 
-/* ADVICE + QUICK CARDS */
-
 .advice-card{
   display:flex;
   align-items:center;
@@ -250,8 +251,7 @@ body{
 }
 
 .quick-grid,
-.details-grid,
-.mini-grid{
+.details-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
   gap:20px;
@@ -259,14 +259,12 @@ body{
 }
 
 .quick-card,
-.detail-card,
-.mini-card{
+.detail-card{
   padding:28px;
 }
 
 .quick-icon,
-.detail-icon,
-.mini-icon{
+.detail-icon{
   font-size:2.5rem;
   margin-bottom:12px;
 }
@@ -277,8 +275,7 @@ body{
   margin-bottom:10px;
 }
 
-.quick-card p,
-.mini-card p{
+.quick-card p{
   color:#4c6475;
   line-height:1.6;
 }
@@ -287,8 +284,6 @@ body{
   font-size:1.8rem;
   color:#0b91c3;
 }
-
-/* FORECAST */
 
 .forecast-heading{
   margin-bottom:24px;
@@ -319,8 +314,7 @@ body{
 
 .forecast-card:hover,
 .quick-card:hover,
-.detail-card:hover,
-.mini-card:hover{
+.detail-card:hover{
   transform:translateY(-5px);
 }
 
@@ -361,63 +355,99 @@ body{
   font-size:.95rem;
 }
 
-.weekend-heading{
-  margin-top:10px;
-}
-
-/* SERVICES */
-
-.services-section{
-  padding:80px 24px;
-  background:linear-gradient(180deg,#ffffff,#eaf6fb);
-}
-
-.services-section h2{
-  text-align:center;
-  font-size:2.7rem;
-  margin-bottom:45px;
-  color:#10283e;
-}
-
-.services-grid{
-  max-width:1180px;
-  margin:0 auto;
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
-  gap:24px;
-}
-
-.service-card{
+.site-footer{
+  padding:34px 24px;
   background:white;
-  border:1px solid rgba(176,213,229,.55);
+  border-top:1px solid rgba(176,213,229,.55);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:24px;
+  flex-wrap:wrap;
+  color:#4c6475;
+}
+
+.site-footer button{
+  padding:12px 22px;
+  font-size:16px;
+  border-radius:14px;
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(16,40,62,.55);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  z-index:1000;
+}
+
+.modal.active{
+  display:flex;
+}
+
+.modal-content{
+  position:relative;
+  width:100%;
+  max-width:520px;
+  background:white;
   border-radius:28px;
-  padding:34px 28px;
-  text-align:center;
-  box-shadow:0 14px 35px rgba(35,89,120,.12);
-  transition:.25s;
+  padding:34px;
+  box-shadow:0 25px 70px rgba(0,0,0,.25);
 }
 
-.service-card:hover{
-  transform:translateY(-5px);
+.close-modal{
+  position:absolute;
+  right:18px;
+  top:14px;
+  width:38px;
+  height:38px;
+  padding:0 !important;
+  border-radius:50% !important;
+  font-size:24px !important;
 }
 
-.service-icon{
-  font-size:3rem;
+.modal-content h2{
+  color:#10283e;
+  margin-bottom:8px;
+}
+
+.modal-content p{
+  color:#4c6475;
   margin-bottom:18px;
 }
 
-.service-card h3{
-  font-size:1.35rem;
-  margin-bottom:12px;
-  color:#10283e;
+.modal-content form{
+  display:grid;
+  gap:14px;
 }
 
-.service-card p{
-  color:#4c6475;
-  line-height:1.6;
+.modal-content input,
+.modal-content textarea{
+  width:100%;
+  padding:15px 16px;
+  border:1px solid #c8dce8;
+  border-radius:14px;
+  font-size:16px;
+  font-family:Arial, Helvetica, sans-serif;
 }
 
-/* MOBILE */
+.modal-content textarea{
+  min-height:130px;
+  resize:vertical;
+}
+
+.modal-content button[type="submit"]{
+  font-size:17px;
+  padding:16px 24px;
+}
+
+.form-status{
+  margin-top:14px;
+  font-weight:bold;
+}
 
 @media(max-width:850px){
 
@@ -438,7 +468,7 @@ body{
     align-items:center;
   }
 
-  .search-box input,
+  .input-wrap,
   .search-box button,
   .location-btn{
     width:100%;
