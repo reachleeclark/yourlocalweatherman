@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Your Local Weatherman</title>
-
   <link rel="stylesheet" href="styles.css" />
 </head>
 
@@ -23,6 +22,8 @@
         <input id="cityInput" type="text" placeholder="Enter ZIP code, like 67217" />
         <button onclick="getWeather()">Get Forecast</button>
       </div>
+
+      <button class="location-btn" onclick="getWeatherByLocation()">📍 Use My Location</button>
     </div>
   </section>
 
@@ -30,45 +31,41 @@
 
     <section class="weather-section">
       <div id="weatherResult" class="weather-container">
-
         <div class="welcome-card">
           <div class="welcome-icon">🌤️</div>
           <h2>Know what’s coming.</h2>
-          <p>Enter your ZIP code to see current conditions, forecast windows, and simple real-life guidance.</p>
+          <p>Enter your ZIP code to see current conditions, forecast windows, air quality, sunrise/sunset, and simple real-life guidance.</p>
         </div>
-
       </div>
     </section>
 
-    <section class="guidance-section">
-      <h2>Simple Guidance for Real Life</h2>
+    <section class="services-section">
+      <h2>Built for Real Life</h2>
 
-      <div class="guidance-grid">
-
-        <div class="guide-card">
-          <div class="guide-icon">🚗</div>
-          <h3>Driving</h3>
-          <p>Plan around rain, wind, heat, cold, and visibility before you leave.</p>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-icon">🚗</div>
+          <h3>Vehicle Prep</h3>
+          <p>See quick driving and car-care guidance based on current conditions.</p>
         </div>
 
-        <div class="guide-card">
-          <div class="guide-icon">🏠</div>
-          <h3>Home</h3>
-          <p>Know when to secure outdoor items, watch for storms, or prepare for temperature swings.</p>
+        <div class="service-card">
+          <div class="service-icon">🏠</div>
+          <h3>Home Readiness</h3>
+          <p>Know when wind, rain, heat, or storms may affect your home or outdoor items.</p>
         </div>
 
-        <div class="guide-card">
-          <div class="guide-icon">🌧️</div>
-          <h3>Outdoor Plans</h3>
-          <p>Quickly see if the next few forecast windows could impact your day.</p>
+        <div class="service-card">
+          <div class="service-icon">🌅</div>
+          <h3>Sunrise & Sunset</h3>
+          <p>Plan your day around daylight, outdoor time, and evening conditions.</p>
         </div>
 
-        <div class="guide-card">
-          <div class="guide-icon">🧭</div>
-          <h3>Plain English</h3>
-          <p>No clutter. No panic. Just clear weather guidance you can actually use.</p>
+        <div class="service-card">
+          <div class="service-icon">🌬️</div>
+          <h3>Air Quality</h3>
+          <p>Helpful visibility into the air you breathe, especially on active outdoor days.</p>
         </div>
-
       </div>
     </section>
 
