@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Your Local Weatherman</title>
-  <link rel="stylesheet" href="styles.css" />
+
+  <link rel="stylesheet" href="styles.css"/>
 </head>
 
 <body>
@@ -13,63 +14,127 @@
     <div class="hero-overlay"></div>
 
     <div class="hero-content">
-      <img src="logo.png" alt="Your Local Weatherman" class="logo logo-large" />
 
-      <p class="hero-tagline">Weather guidance that feels calm, clear, and local.</p>
+      <img src="logo.png" class="logo" alt="Your Local Weatherman"/>
+
+      <p class="hero-tagline">
+        Weather guidance that feels calm, clear, and local.
+      </p>
 
       <div class="search-box">
+
         <div class="input-wrap">
-          <input 
-            id="cityInput" 
-            type="text" 
-            placeholder="Enter ZIP, city, or city/state" 
+          <input
+            id="cityInput"
+            type="text"
+            placeholder="Enter ZIP, city, or city/state"
             list="locationSuggestions"
             autocomplete="off"
           />
+
           <datalist id="locationSuggestions"></datalist>
         </div>
 
-        <button onclick="getWeather()">Get Forecast</button>
+        <button onclick="getWeather()">
+          Get Forecast
+        </button>
+
       </div>
 
-      <button class="location-btn" onclick="getWeatherByLocation()">📍 Use My Location</button>
+      <button class="location-btn" onclick="getWeatherByLocation()">
+        📍 Use My Location
+      </button>
+
     </div>
   </section>
 
   <main>
+
     <section class="weather-section">
+
       <div id="weatherResult" class="weather-container">
+
         <div class="welcome-card">
+
           <div class="welcome-icon">🌤️</div>
+
           <h2>Know what’s coming.</h2>
-          <p>Enter your ZIP code, city, or city/state to see current conditions, your day ahead, air quality, sunrise/sunset, and practical guidance.</p>
+
+          <p>
+            Enter your ZIP code, city, or city/state to see
+            current conditions, your day ahead, air quality,
+            sunrise/sunset, and practical weather guidance.
+          </p>
+
         </div>
+
       </div>
+
     </section>
+
   </main>
 
   <footer class="site-footer">
-    <p>© 2026 Your Local Weatherman. All rights reserved.</p>
-    <button onclick="openContactForm()">Contact Us</button>
+
+    <p>
+      © 2026 Your Local Weatherman. All rights reserved.
+    </p>
+
+    <button onclick="openContactForm()">
+      Contact Us
+    </button>
+
   </footer>
 
   <div id="contactModal" class="modal">
+
     <div class="modal-content">
-      <button class="close-modal" onclick="closeContactForm()">×</button>
+
+      <button class="close-modal" onclick="closeContactForm()">
+        ×
+      </button>
+
       <h2>Contact Us</h2>
-      <p>Have a question or suggestion? Send us a note.</p>
+
+      <p>
+        Have a question or suggestion? Send us a note.
+      </p>
 
       <form id="contactForm">
-        <input type="text" name="name" placeholder="Your name" required />
-        <input type="email" name="email" placeholder="Your email" required />
-        <textarea name="message" placeholder="Your message" required></textarea>
-        <button type="submit">Send Message</button>
+
+        <input
+          type="text"
+          name="name"
+          placeholder="Your name"
+          required
+        />
+
+        <input
+          type="email"
+          name="email"
+          placeholder="Your email"
+          required
+        />
+
+        <textarea
+          name="message"
+          placeholder="Your message"
+          required
+        ></textarea>
+
+        <button type="submit">
+          Send Message
+        </button>
+
       </form>
 
       <p id="formStatus" class="form-status"></p>
+
     </div>
+
   </div>
 
   <script src="script.js"></script>
+
 </body>
 </html>
