@@ -3,8 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Your Local Weatherman</title>
 
+  <title>Your Local Weatherman | Calm, Clear Local Weather Guidance</title>
+  <meta name="description" content="Your Local Weatherman gives calm, practical weather guidance, radar, local conditions, sunrise, sunset, air quality, and planning tips for real life." />
+
+  <meta property="og:title" content="Your Local Weatherman" />
+  <meta property="og:description" content="Calm, clear local weather guidance for real life." />
+  <meta property="og:type" content="website" />
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2285%22>🌤️</text></svg>">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <link rel="stylesheet" href="styles.css"/>
 </head>
 
@@ -14,126 +23,58 @@
     <div class="hero-overlay"></div>
 
     <div class="hero-content">
+      <img src="logo.png" class="logo" alt="Your Local Weatherman logo"/>
 
-      <img src="logo.png" class="logo" alt="Your Local Weatherman"/>
-
-      <p class="hero-tagline">
-        Weather guidance that feels calm, clear, and local.
-      </p>
+      <p class="hero-tagline">Weather guidance that feels calm, clear, and local.</p>
 
       <div class="search-box">
-
         <div class="input-wrap">
-          <input
-            id="cityInput"
-            type="text"
-            placeholder="Enter ZIP, city, or city/state"
-            list="locationSuggestions"
-            autocomplete="off"
-          />
-
-          <datalist id="locationSuggestions"></datalist>
+          <input id="cityInput" type="text" placeholder="Enter ZIP, city, or city/state" autocomplete="off"/>
         </div>
-
-        <button onclick="getWeather()">
-          Get Forecast
-        </button>
-
+        <button onclick="getWeather()">Get Forecast</button>
       </div>
 
-      <button class="location-btn" onclick="getWeatherByLocation()">
-        📍 Use My Location
-      </button>
+      <button class="location-btn" onclick="getWeatherByLocation()">📍 Use My Location</button>
 
+      <div id="savedLocations" class="saved-locations"></div>
     </div>
   </section>
 
   <main>
-
     <section class="weather-section">
-
       <div id="weatherResult" class="weather-container">
-
         <div class="welcome-card">
-
           <div class="welcome-icon">🌤️</div>
-
           <h2>Know what’s coming.</h2>
-
-          <p>
-            Enter your ZIP code, city, or city/state to see
-            current conditions, your day ahead, air quality,
-            sunrise/sunset, and practical weather guidance.
-          </p>
-
+          <p>Enter your ZIP code, city, or city/state to see current conditions, radar, alerts, air quality, sunrise/sunset, and practical guidance.</p>
         </div>
-
       </div>
-
     </section>
-
   </main>
 
   <footer class="site-footer">
-
-    <p>
-      © 2026 Your Local Weatherman. All rights reserved.
-    </p>
-
-    <button onclick="openContactForm()">
-      Contact Us
-    </button>
-
+    <p>© 2026 Your Local Weatherman. All rights reserved.</p>
+    <button onclick="openContactForm()">Contact Us</button>
   </footer>
 
   <div id="contactModal" class="modal">
-
     <div class="modal-content">
-
-      <button class="close-modal" onclick="closeContactForm()">
-        ×
-      </button>
-
+      <button class="close-modal" onclick="closeContactForm()">×</button>
       <h2>Contact Us</h2>
-
-      <p>
-        Have a question or suggestion? Send us a note.
-      </p>
+      <p>Have a question or suggestion? Send us a note.</p>
 
       <form id="contactForm">
-
-        <input
-          type="text"
-          name="name"
-          placeholder="Your name"
-          required
-        />
-
-        <input
-          type="email"
-          name="email"
-          placeholder="Your email"
-          required
-        />
-
-        <textarea
-          name="message"
-          placeholder="Your message"
-          required
-        ></textarea>
-
-        <button type="submit">
-          Send Message
-        </button>
-
+        <input type="text" name="name" placeholder="Your name" required />
+        <input type="email" name="email" placeholder="Your email" required />
+        <textarea name="message" placeholder="Your message" required></textarea>
+        <button type="submit">Send Message</button>
       </form>
 
       <p id="formStatus" class="form-status"></p>
-
     </div>
-
   </div>
 
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="script.js"></script>
 
 </body>
