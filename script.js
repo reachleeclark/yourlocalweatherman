@@ -42,6 +42,8 @@ function getWeatherByLocation() {
       `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`,
       `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`
     );
+  }, () => {
+    showMessage("Unable to access your location.", "Please enter a ZIP code or city instead.");
   });
 }
 
@@ -109,9 +111,10 @@ function renderWeather(currentData, forecastData, airData, alerts) {
 
   const forecastCards = forecastData.list.slice(0, 8).map(item => {
     const date = new Date(item.dt * 1000);
+    const conditionClass = getConditionClass(item.weather[0].main);
 
     return `
-      <div class="forecast-card">
+      <div class="forecast-card ${conditionClass}">
         <div class="forecast-day">${date.toLocaleDateString([], { weekday: "short" })}</div>
         <div class="forecast-time">${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
         <div class="forecast-icon">${getWeatherIcon(item.weather[0].main)}</div>
@@ -175,9 +178,29 @@ function renderWeather(currentData, forecastData, airData, alerts) {
     </div>
 
     <div class="details-grid">
-      <div class="image-detail-card sunrise-bg"><div class="image-overlay"></div><div class="image-detail-content"><h3>Sunrise</h3><strong>${sunrise}</strong></div></div>
-      <div class="image-detail-card sunset-bg"><div class="image-overlay"></div><div class="image-detail-content"><h3>Sunset</h3><strong>${sunset}</strong></div></div>
-      <div class="image-detail-card air-bg"><div class="image-overlay"></div><div class="image-detail-content"><h3>Air Quality</h3><strong>${airQuality}</strong></div></div>
+      <div class="image-detail-card sunrise-bg">
+        <div class="image-overlay"></div>
+        <div class="image-detail-content">
+          <h3>Sunrise</h3>
+          <strong>${sunrise}</strong>
+        </div>
+      </div>
+
+      <div class="image-detail-card sunset-bg">
+        <div class="image-overlay"></div>
+        <div class="image-detail-content">
+          <h3>Sunset</h3>
+          <strong>${sunset}</strong>
+        </div>
+      </div>
+
+      <div class="image-detail-card air-bg">
+        <div class="image-overlay"></div>
+        <div class="image-detail-content">
+          <h3>Air Quality</h3>
+          <strong>${airQuality}</strong>
+        </div>
+      </div>
     </div>
 
     <div class="radar-card">
@@ -186,6 +209,7 @@ function renderWeather(currentData, forecastData, airData, alerts) {
         <p>Live precipitation radar for your area.</p>
       </div>
       <div id="radarMap"></div>
+      <p id="radarStatus" class="radar-status">Loading radar...</p>
     </div>
 
     <div class="forecast-heading">
@@ -203,34 +227,70 @@ function renderWeather(currentData, forecastData, airData, alerts) {
     <div class="forecast-grid">${extendedCards}</div>
   `;
 
-  setTimeout(() => renderRadar(currentData.coord.lat, currentData.coord.lon), 100);
+  setTimeout(() => renderRadar(currentData.coord.lat, currentData.coord.lon), 300);
 }
 
 function renderRadar(lat, lon) {
-  if (currentMap) {
-    currentMap.remove();
-  }
+  const radarStatus = document.getElementById("radarStatus");
 
-  currentMap = L.map("radarMap").setView([lat, lon], 7);
+  try {
+    if (typeof L === "undefined") {
+      if (radarStatus) {
+        radarStatus.textContent = "Radar map library did not load. Please refresh the page.";
+      }
+      return;
+    }
 
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap"
-  }).addTo(currentMap);
+    if (currentMap) {
+      currentMap.remove();
+      currentMap = null;
+    }
 
-  fetch("https://api.rainviewer.com/public/weather-maps.json")
-    .then(response => response.json())
-    .then(data => {
-      const frames = data.radar.past;
-      const latest = frames[frames.length - 1];
+    currentMap = L.map("radarMap", {
+      scrollWheelZoom: false
+    }).setView([lat, lon], 7);
 
-      L.tileLayer(
-        `${data.host}${latest.path}/256/{z}/{x}/{y}/2/1_1.png`,
-        {
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors",
+      maxZoom: 18
+    }).addTo(currentMap);
+
+    L.marker([lat, lon]).addTo(currentMap);
+
+    fetch("https://api.rainviewer.com/public/weather-maps.json")
+      .then(response => response.json())
+      .then(data => {
+        if (!data || !data.radar || !data.radar.past || !data.radar.past.length) {
+          throw new Error("No radar frames available");
+        }
+
+        const frames = data.radar.past;
+        const latest = frames[frames.length - 1];
+
+        L.tileLayer(`${data.host}${latest.path}/256/{z}/{x}/{y}/2/1_1.png`, {
           opacity: 0.65,
           attribution: "Radar © RainViewer"
+        }).addTo(currentMap);
+
+        setTimeout(() => {
+          currentMap.invalidateSize();
+        }, 200);
+
+        if (radarStatus) {
+          radarStatus.textContent = "Radar layer loaded.";
         }
-      ).addTo(currentMap);
-    });
+      })
+      .catch(() => {
+        if (radarStatus) {
+          radarStatus.textContent = "Radar layer is temporarily unavailable, but the map is still active.";
+        }
+      });
+
+  } catch {
+    if (radarStatus) {
+      radarStatus.textContent = "Radar is temporarily unavailable. Please try again later.";
+    }
+  }
 }
 
 function buildAlerts(alerts) {
@@ -271,7 +331,7 @@ function buildExtendedOutlook(forecastData) {
   });
 
   return Object.values(days).slice(0, 5).map(day => `
-    <div class="forecast-card">
+    <div class="forecast-card ${getConditionClass(day.condition)}">
       <div class="forecast-day">${day.day}</div>
       <div class="forecast-icon">${getWeatherIcon(day.condition)}</div>
       <div class="forecast-temp">${Math.round(Math.max(...day.temps))}° / ${Math.round(Math.min(...day.temps))}°</div>
@@ -305,6 +365,16 @@ function getBestWindow(forecastData) {
 
   const date = new Date(best.dt * 1000);
   return `Best-looking window: ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
+}
+
+function getConditionClass(condition) {
+  if (condition.includes("Thunder")) return "condition-storm";
+  if (condition.includes("Rain") || condition.includes("Drizzle")) return "condition-rain";
+  if (condition.includes("Snow")) return "condition-snow";
+  if (condition.includes("Cloud")) return "condition-cloud";
+  if (condition.includes("Clear")) return "condition-clear";
+  if (condition.includes("Mist") || condition.includes("Fog") || condition.includes("Haze")) return "condition-fog";
+  return "condition-default";
 }
 
 function getWeatherIcon(condition) {
