@@ -2,6 +2,7 @@ const apiKey = "1d580865d7039710695991aae9a625f6";
 const contactAccessKey = "PASTE_YOUR_WEB3FORMS_ACCESS_KEY_HERE";
 
 let currentMap = null;
+let activeWeatherLayer = null;
 
 window.onload = function () {
   renderSavedLocations();
@@ -49,7 +50,7 @@ function getWeatherByLocation() {
 
 async function loadWeather(currentUrl, forecastUrl) {
   try {
-    showMessage("Loading your forecast...", "Checking radar, alerts, current conditions, and forecast guidance.");
+    showMessage("Loading your forecast...", "Checking radar, alerts, current conditions, and practical guidance.");
 
     const currentResponse = await fetch(currentUrl);
     const forecastResponse = await fetch(forecastUrl);
@@ -108,6 +109,8 @@ function renderWeather(currentData, forecastData, airData, alerts) {
   const rainTiming = getRainTiming(forecastData);
   const bestWindow = getBestWindow(forecastData);
   const alertHTML = buildAlerts(alerts);
+  const stormTimeline = buildStormTimeline(forecastData);
+  const lifestyleScores = buildLifestyleScores(temp, wind, description, forecastData);
 
   const forecastCards = forecastData.list.slice(0, 8).map(item => {
     const date = new Date(item.dt * 1000);
@@ -157,6 +160,11 @@ function renderWeather(currentData, forecastData, airData, alerts) {
       </div>
     </div>
 
+    <div class="daily-brief-card">
+      <h3>Today’s Local Brief</h3>
+      <p>${getDailyBrief(currentData.name, temp, wind, description, rainTiming, bestWindow)}</p>
+    </div>
+
     <div class="quick-grid">
       <div class="quick-card">
         <div class="quick-icon">✅</div>
@@ -175,6 +183,15 @@ function renderWeather(currentData, forecastData, airData, alerts) {
         <h3>Driving Guidance</h3>
         <p>${getVehicleTip(temp, wind, description)}</p>
       </div>
+    </div>
+
+    <div class="score-grid">
+      ${lifestyleScores}
+    </div>
+
+    <div class="storm-card">
+      <h3>Storm Timeline</h3>
+      <p>${stormTimeline}</p>
     </div>
 
     <div class="details-grid">
@@ -206,10 +223,18 @@ function renderWeather(currentData, forecastData, airData, alerts) {
     <div class="radar-card">
       <div class="forecast-heading">
         <h2>Local Radar</h2>
-        <p>Live precipitation radar for your area.</p>
+        <p>Zoomable weather map with selectable precipitation, clouds, wind, and temperature layers.</p>
       </div>
+
+      <div class="radar-controls">
+        <button onclick="setWeatherLayer('precipitation_new')">Precipitation</button>
+        <button onclick="setWeatherLayer('clouds_new')">Clouds</button>
+        <button onclick="setWeatherLayer('wind_new')">Wind</button>
+        <button onclick="setWeatherLayer('temp_new')">Temperature</button>
+      </div>
+
       <div id="radarMap"></div>
-      <p id="radarStatus" class="radar-status">Loading radar...</p>
+      <p id="radarStatus" class="radar-status">Loading radar map...</p>
     </div>
 
     <div class="forecast-heading">
@@ -235,9 +260,7 @@ function renderRadar(lat, lon) {
 
   try {
     if (typeof L === "undefined") {
-      if (radarStatus) {
-        radarStatus.textContent = "Radar map library did not load. Please refresh the page.";
-      }
+      radarStatus.textContent = "Radar map library did not load. Please refresh the page.";
       return;
     }
 
@@ -247,50 +270,59 @@ function renderRadar(lat, lon) {
     }
 
     currentMap = L.map("radarMap", {
-      scrollWheelZoom: false
-    }).setView([lat, lon], 7);
+      scrollWheelZoom: true,
+      zoomControl: true
+    }).setView([lat, lon], 8);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
-      maxZoom: 18
+      maxZoom: 19
     }).addTo(currentMap);
 
     L.marker([lat, lon]).addTo(currentMap);
 
-    fetch("https://api.rainviewer.com/public/weather-maps.json")
-      .then(response => response.json())
-      .then(data => {
-        if (!data || !data.radar || !data.radar.past || !data.radar.past.length) {
-          throw new Error("No radar frames available");
-        }
+    setWeatherLayer("precipitation_new");
 
-        const frames = data.radar.past;
-        const latest = frames[frames.length - 1];
+    setTimeout(() => {
+      currentMap.invalidateSize();
+    }, 250);
 
-        L.tileLayer(`${data.host}${latest.path}/256/{z}/{x}/{y}/2/1_1.png`, {
-          opacity: 0.65,
-          attribution: "Radar © RainViewer"
-        }).addTo(currentMap);
-
-        setTimeout(() => {
-          currentMap.invalidateSize();
-        }, 200);
-
-        if (radarStatus) {
-          radarStatus.textContent = "Radar layer loaded.";
-        }
-      })
-      .catch(() => {
-        if (radarStatus) {
-          radarStatus.textContent = "Radar layer is temporarily unavailable, but the map is still active.";
-        }
-      });
+    radarStatus.textContent = "Map ready. Use the buttons above to switch weather layers.";
 
   } catch {
     if (radarStatus) {
       radarStatus.textContent = "Radar is temporarily unavailable. Please try again later.";
     }
   }
+}
+
+function setWeatherLayer(layerName) {
+  const radarStatus = document.getElementById("radarStatus");
+
+  if (!currentMap) return;
+
+  if (activeWeatherLayer) {
+    currentMap.removeLayer(activeWeatherLayer);
+  }
+
+  activeWeatherLayer = L.tileLayer(
+    `https://tile.openweathermap.org/map/${layerName}/{z}/{x}/{y}.png?appid=${apiKey}`,
+    {
+      opacity: 0.62,
+      maxZoom: 19,
+      attribution: "Weather layers © OpenWeather"
+    }
+  );
+
+  activeWeatherLayer.addTo(currentMap);
+
+  if (radarStatus) {
+    radarStatus.textContent = `Showing ${formatLayerName(layerName)} layer.`;
+  }
+}
+
+function formatLayerName(layerName) {
+  return layerName.replace("_new", "").replace("_", " ");
 }
 
 function buildAlerts(alerts) {
@@ -365,6 +397,64 @@ function getBestWindow(forecastData) {
 
   const date = new Date(best.dt * 1000);
   return `Best-looking window: ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
+}
+
+function buildStormTimeline(forecastData) {
+  const stormWindows = forecastData.list.slice(0, 10).filter(item =>
+    item.weather[0].main.includes("Thunder") ||
+    item.weather[0].description.toLowerCase().includes("storm")
+  );
+
+  if (!stormWindows.length) {
+    return "No clear thunderstorm signal in the next forecast windows.";
+  }
+
+  const first = new Date(stormWindows[0].dt * 1000);
+  return `Storm chances may increase around ${first.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Keep checking if skies start changing.`;
+}
+
+function buildLifestyleScores(temp, wind, description, forecastData) {
+  const text = description.toLowerCase();
+  const rainSoon = forecastData.list.slice(0, 4).some(item => item.pop > 0.45 || item.weather[0].main.includes("Rain"));
+
+  const patioScore = scoreLabel(
+    temp >= 60 && temp <= 84 && wind < 16 && !rainSoon,
+    "Great patio weather",
+    "Patio may be iffy"
+  );
+
+  const grillingScore = scoreLabel(
+    temp >= 45 && temp <= 92 && wind < 18 && !rainSoon,
+    "Good grilling window",
+    "Have a backup plan"
+  );
+
+  const walkingScore = scoreLabel(
+    temp >= 45 && temp <= 85 && wind < 18 && !rainSoon,
+    "Good walking weather",
+    "Check conditions first"
+  );
+
+  const kidSportsScore = scoreLabel(
+    temp >= 50 && temp <= 88 && wind < 20 && !text.includes("storm") && !rainSoon,
+    "Playable conditions",
+    "Watch the forecast"
+  );
+
+  return `
+    <div class="score-card"><div class="score-icon">🍔</div><h3>Grilling</h3><p>${grillingScore}</p></div>
+    <div class="score-card"><div class="score-icon">🌿</div><h3>Patio</h3><p>${patioScore}</p></div>
+    <div class="score-card"><div class="score-icon">🚶</div><h3>Walking</h3><p>${walkingScore}</p></div>
+    <div class="score-card"><div class="score-icon">⚽</div><h3>Kid Sports</h3><p>${kidSportsScore}</p></div>
+  `;
+}
+
+function scoreLabel(isGood, goodText, cautionText) {
+  return isGood ? goodText : cautionText;
+}
+
+function getDailyBrief(city, temp, wind, description, rainTiming, bestWindow) {
+  return `${city} is currently ${temp}° with ${description}. Winds are around ${wind} mph. ${bestWindow} ${rainTiming}`;
 }
 
 function getConditionClass(condition) {
