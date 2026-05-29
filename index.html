@@ -19,7 +19,17 @@
       <p>Calm, simple weather guidance for real life.</p>
 
       <div class="search-box">
-        <input id="cityInput" type="text" placeholder="Enter ZIP code, like 67217" />
+        <div class="input-wrap">
+          <input 
+            id="cityInput" 
+            type="text" 
+            placeholder="Enter ZIP, city, or city/state" 
+            list="locationSuggestions"
+            autocomplete="off"
+          />
+          <datalist id="locationSuggestions"></datalist>
+        </div>
+
         <button onclick="getWeather()">Get Forecast</button>
       </div>
 
@@ -28,48 +38,38 @@
   </section>
 
   <main>
-
     <section class="weather-section">
       <div id="weatherResult" class="weather-container">
         <div class="welcome-card">
           <div class="welcome-icon">🌤️</div>
           <h2>Know what’s coming.</h2>
-          <p>Enter your ZIP code to see current conditions, forecast windows, air quality, sunrise/sunset, and simple real-life guidance.</p>
+          <p>Enter your ZIP code, city, or city/state to see current conditions, forecast windows, air quality, sunrise/sunset, and practical real-life guidance.</p>
         </div>
       </div>
     </section>
-
-    <section class="services-section">
-      <h2>Built for Real Life</h2>
-
-      <div class="services-grid">
-        <div class="service-card">
-          <div class="service-icon">🚗</div>
-          <h3>Vehicle Prep</h3>
-          <p>See quick driving and car-care guidance based on current conditions.</p>
-        </div>
-
-        <div class="service-card">
-          <div class="service-icon">🏠</div>
-          <h3>Home Readiness</h3>
-          <p>Know when wind, rain, heat, or storms may affect your home or outdoor items.</p>
-        </div>
-
-        <div class="service-card">
-          <div class="service-icon">🌅</div>
-          <h3>Sunrise & Sunset</h3>
-          <p>Plan your day around daylight, outdoor time, and evening conditions.</p>
-        </div>
-
-        <div class="service-card">
-          <div class="service-icon">🌬️</div>
-          <h3>Air Quality</h3>
-          <p>Helpful visibility into the air you breathe, especially on active outdoor days.</p>
-        </div>
-      </div>
-    </section>
-
   </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Your Local Weatherman. All rights reserved.</p>
+    <button onclick="openContactForm()">Contact Us</button>
+  </footer>
+
+  <div id="contactModal" class="modal">
+    <div class="modal-content">
+      <button class="close-modal" onclick="closeContactForm()">×</button>
+      <h2>Contact Us</h2>
+      <p>Have a question or suggestion? Send us a note.</p>
+
+      <form id="contactForm">
+        <input type="text" name="name" placeholder="Your name" required />
+        <input type="email" name="email" placeholder="Your email" required />
+        <textarea name="message" placeholder="Your message" required></textarea>
+        <button type="submit">Send Message</button>
+      </form>
+
+      <p id="formStatus" class="form-status"></p>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
