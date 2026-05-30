@@ -54,7 +54,15 @@ async function handleSearch(query) {
     }
 
     const place = results[0];
-    await loadWeather(place.lat, place.lon, place.name, place.state, place.country);
+
+    await loadWeather(
+      place.lat,
+      place.lon,
+      place.name,
+      place.state,
+      place.country
+    );
+
     suggestionsBox.classList.add("hidden");
   } catch (error) {
     console.error(error);
@@ -114,7 +122,14 @@ function renderSuggestions(results) {
     item.addEventListener("click", async () => {
       locationInput.value = formatPlace(place);
       suggestionsBox.classList.add("hidden");
-      await loadWeather(place.lat, place.lon, place.name, place.state, place.country);
+
+      await loadWeather(
+        place.lat,
+        place.lon,
+        place.name,
+        place.state,
+        place.country
+      );
     });
 
     suggestionsBox.appendChild(item);
@@ -191,7 +206,7 @@ async function loadWeather(lat, lon, name, state, country) {
 function renderCurrent(weather, name, state) {
   document.getElementById("locationName").textContent = state ? `${name}, ${state}` : name;
   document.getElementById("weatherDescription").textContent = weather.weather[0].description;
-  document.getElementById("temperature").textContent = `${Math.round(weather.main.temp)}°`;
+  document.getElementById("currentTemp").textContent = `${Math.round(weather.main.temp)}°`;
   document.getElementById("feelsLike").textContent = `${Math.round(weather.main.feels_like)}°`;
   document.getElementById("windSpeed").textContent = `${Math.round(weather.wind.speed)} mph`;
   document.getElementById("humidity").textContent = `${weather.main.humidity}%`;
@@ -242,7 +257,7 @@ function renderRainTiming(forecast) {
     }
 
     const card = document.createElement("div");
-    card.className = "rain-bar-card";
+    card.className = "rain-card";
 
     card.innerHTML = `
       <div class="rain-time">${time}</div>
@@ -558,13 +573,13 @@ function formatPlace(place) {
 
 function showSections() {
   [
-    "currentWeather",
-    "weathermanNote",
+    "currentSection",
+    "briefSection",
     "rainTimingSection",
     "forecastSection",
     "lifestyleSection",
     "mapSection",
-    "extraDetails"
+    "detailsSection"
   ].forEach(id => document.getElementById(id).classList.remove("hidden"));
 }
 
