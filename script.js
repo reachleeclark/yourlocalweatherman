@@ -7,12 +7,18 @@ const suggestionsBox = document.getElementById("suggestions");
 const saveFavoriteBtn = document.getElementById("saveFavoriteBtn");
 
 let currentLocation = null;
-let map;
-let weatherLayer;
+let map = null;
+let weatherLayer = null;
 
 searchBtn.addEventListener("click", () => handleSearch(locationInput.value));
 geoBtn.addEventListener("click", useCurrentLocation);
 saveFavoriteBtn.addEventListener("click", saveFavorite);
+
+locationInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    handleSearch(locationInput.value);
+  }
+});
 
 locationInput.addEventListener("input", debounce(async () => {
   const query = locationInput.value.trim();
@@ -39,16 +45,21 @@ loadFavorites();
 async function handleSearch(query) {
   if (!query.trim()) return;
 
-  const results = await getLocationSuggestions(query);
+  try {
+    const results = await getLocationSuggestions(query);
 
-  if (!results.length) {
-    alert("I couldn't find that location. Try city + state, like Myrtle Beach, South Carolina.");
-    return;
+    if (!results.length) {
+      alert("I couldn't find that location. Try city + state, like Myrtle Beach, South Carolina.");
+      return;
+    }
+
+    const place = results[0];
+    await loadWeather(place.lat, place.lon, place.name, place.state, place.country);
+    suggestionsBox.classList.add("hidden");
+  } catch (error) {
+    console.error(error);
+    alert("Something went wrong getting the weather. Please check your API key and try again.");
   }
-
-  const place = results[0];
-  await loadWeather(place.lat, place.lon, place.name, place.state, place.country);
-  suggestionsBox.classList.add("hidden");
 }
 
 async function getLocationSuggestions(query) {
@@ -57,7 +68,9 @@ async function getLocationSuggestions(query) {
   if (/^\d{5}$/.test(cleaned)) {
     const zipUrl = `https://api.openweathermap.org/geo/1.0/zip?zip=${cleaned},US&appid=${API_KEY}`;
     const zipResponse = await fetch(zipUrl);
+
     if (!zipResponse.ok) return [];
+
     const zipData = await zipResponse.json();
 
     return [{
@@ -71,6 +84,7 @@ async function getLocationSuggestions(query) {
 
   const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cleaned)}&limit=6&appid=${API_KEY}`;
   const response = await fetch(url);
+
   if (!response.ok) return [];
 
   const data = await response.json();
@@ -116,20 +130,26 @@ async function useCurrentLocation() {
   }
 
   navigator.geolocation.getCurrentPosition(async position => {
-    const { latitude, longitude } = position.coords;
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
 
-    const reverseUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`;
-    const response = await fetch(reverseUrl);
-    const data = await response.json();
-    const place = data[0];
+    try {
+      const reverseUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`;
+      const response = await fetch(reverseUrl);
+      const data = await response.json();
+      const place = data[0];
 
-    await loadWeather(
-      latitude,
-      longitude,
-      place?.name || "Your Location",
-      place?.state || "",
-      place?.country || "US"
-    );
+      await loadWeather(
+        lat,
+        lon,
+        place?.name || "Your Location",
+        place?.state || "",
+        place?.country || "US"
+      );
+    } catch (error) {
+      console.error(error);
+      alert("I couldn't load your location weather.");
+    }
   }, () => {
     alert("I couldn't access your location.");
   });
@@ -148,15 +168,19 @@ async function loadWeather(lat, lon, name, state, country) {
     fetch(airUrl)
   ]);
 
+  if (!weatherRes.ok || !forecastRes.ok) {
+    throw new Error("Weather API request failed.");
+  }
+
   const weather = await weatherRes.json();
   const forecast = await forecastRes.json();
-  const air = await airRes.json();
+  const air = airRes.ok ? await airRes.json() : null;
 
   renderCurrent(weather, name, state);
-  renderForecast(forecast);
-  renderRainTiming(forecast);
-  renderLifestyle(weather, forecast);
   renderBrief(weather, forecast, name);
+  renderRainTiming(forecast);
+  renderForecast(forecast);
+  renderLifestyle(weather, forecast);
   renderDetails(weather, air);
   loadAlerts(lat, lon);
   renderMap(lat, lon);
@@ -167,16 +191,82 @@ async function loadWeather(lat, lon, name, state, country) {
 function renderCurrent(weather, name, state) {
   document.getElementById("locationName").textContent = state ? `${name}, ${state}` : name;
   document.getElementById("weatherDescription").textContent = weather.weather[0].description;
-  document.getElementById("currentTemp").textContent = `${Math.round(weather.main.temp)}°`;
+  document.getElementById("temperature").textContent = `${Math.round(weather.main.temp)}°`;
   document.getElementById("feelsLike").textContent = `${Math.round(weather.main.feels_like)}°`;
   document.getElementById("windSpeed").textContent = `${Math.round(weather.wind.speed)} mph`;
   document.getElementById("humidity").textContent = `${weather.main.humidity}%`;
   document.getElementById("weatherIcon").src = `https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`;
 }
 
+function renderBrief(weather, forecast, name) {
+  const temp = Math.round(weather.main.temp);
+  const feels = Math.round(weather.main.feels_like);
+  const wind = Math.round(weather.wind.speed);
+  const desc = weather.weather[0].description;
+  const rainChance = getRainChance(forecast);
+
+  let message = `Right now in ${name}, it’s ${temp}° with ${desc}. It feels like ${feels}°, and winds are around ${wind} mph. `;
+
+  if (rainChance >= 60) {
+    message += "Rain chances are high enough that this is a keep-an-eye-on-the-radar kind of day.";
+  } else if (rainChance >= 30) {
+    message += "There is some rain potential, but it does not look like an automatic washout.";
+  } else {
+    message += "Overall, this looks like a manageable day for most normal plans.";
+  }
+
+  document.getElementById("localBrief").textContent = message;
+}
+
+function renderRainTiming(forecast) {
+  const rainBars = document.getElementById("rainBars");
+  const rainSummary = document.getElementById("rainSummary");
+
+  rainBars.innerHTML = "";
+
+  const blocks = forecast.list.slice(0, 8);
+
+  let highest = {
+    time: "",
+    chance: 0
+  };
+
+  blocks.forEach(item => {
+    const chance = Math.round((item.pop || 0) * 100);
+    const time = new Date(item.dt * 1000).toLocaleTimeString("en-US", {
+      hour: "numeric"
+    });
+
+    if (chance > highest.chance) {
+      highest = { time, chance };
+    }
+
+    const card = document.createElement("div");
+    card.className = "rain-bar-card";
+
+    card.innerHTML = `
+      <div class="rain-time">${time}</div>
+      <div class="rain-track">
+        <div class="rain-fill" style="height:${Math.max(chance, 4)}%"></div>
+      </div>
+      <div class="rain-percent">${chance}%</div>
+    `;
+
+    rainBars.appendChild(card);
+  });
+
+  if (highest.chance >= 60) {
+    rainSummary.textContent = `Rain looks most likely around ${highest.time}, with about a ${highest.chance}% chance. That is the window to plan around.`;
+  } else if (highest.chance >= 30) {
+    rainSummary.textContent = `The best rain chance appears to be around ${highest.time}. Not a guaranteed washout, but worth watching.`;
+  } else {
+    rainSummary.textContent = "Rain chances look fairly low in the next several forecast blocks.";
+  }
+}
+
 function renderForecast(forecast) {
-  const container = document.getElementById("forecastCards");
-  container.innerHTML = "";
+  const grid = document.getElementById("forecastGrid");
+  grid.innerHTML = "";
 
   const daily = {};
 
@@ -210,59 +300,13 @@ function renderForecast(forecast) {
       <p>${data.description}</p>
     `;
 
-    container.appendChild(card);
+    grid.appendChild(card);
   });
-}
-
-function renderRainTiming(forecast) {
-  const rainBars = document.getElementById("rainBars");
-  const rainSummary = document.getElementById("rainSummary");
-
-  rainBars.innerHTML = "";
-
-  const nextBlocks = forecast.list.slice(0, 8);
-
-  let highest = {
-    time: "",
-    chance: 0
-  };
-
-  nextBlocks.forEach(item => {
-    const chance = Math.round((item.pop || 0) * 100);
-    const time = new Date(item.dt * 1000).toLocaleTimeString("en-US", {
-      hour: "numeric"
-    });
-
-    if (chance > highest.chance) {
-      highest = { time, chance };
-    }
-
-    const card = document.createElement("div");
-    card.className = "rain-bar-card";
-
-    card.innerHTML = `
-      <div class="rain-time">${time}</div>
-      <div class="rain-bar-track">
-        <div class="rain-bar-fill" style="height:${Math.max(chance, 4)}%"></div>
-      </div>
-      <div class="rain-percent">${chance}%</div>
-    `;
-
-    rainBars.appendChild(card);
-  });
-
-  if (highest.chance >= 60) {
-    rainSummary.textContent = `Rain looks most likely around ${highest.time}, with about a ${highest.chance}% chance. This is the part of the day to plan around.`;
-  } else if (highest.chance >= 30) {
-    rainSummary.textContent = `There is some rain potential, with the best chance around ${highest.time}. Not a guaranteed washout, but worth watching.`;
-  } else {
-    rainSummary.textContent = `Rain chances look pretty low over the next several forecast blocks. Good news for most outdoor plans.`;
-  }
 }
 
 function renderLifestyle(weather, forecast) {
-  const container = document.getElementById("lifestyleCards");
-  container.innerHTML = "";
+  const grid = document.getElementById("lifestyleGrid");
+  grid.innerHTML = "";
 
   const temp = weather.main.temp;
   const wind = weather.wind.speed;
@@ -273,34 +317,31 @@ function renderLifestyle(weather, forecast) {
     {
       title: "Grilling",
       good: temp > 45 && wind < 18 && rainChance < 45,
-      copy: "Good night to fire it up. Keep an eye on the breeze and have a backup plan if showers creep in."
+      copy: "Good enough to fire it up. Watch the wind and keep a backup plan if rain chances rise."
     },
     {
       title: "Patio Sitting",
       good: temp > 58 && temp < 90 && rainChance < 35,
-      copy: "Comfortable enough to linger outside. Shade, a light jacket, or bug spray may decide how long you stay."
+      copy: "Comfortable enough to sit outside. Shade, breeze, and bugs may be the deciding factors."
     },
     {
       title: "Walking",
       good: temp > 35 && temp < 88 && wind < 22 && !condition.includes("thunder"),
-      copy: "Looks workable for a walk. If the sky looks unsettled, keep it close to home or take the shorter loop."
+      copy: "Looks workable for a walk. If the sky looks unsettled, take the shorter loop."
     },
     {
       title: "Kid Sports",
       good: temp > 40 && temp < 92 && rainChance < 50 && wind < 24,
-      copy: "Probably playable, but check fields before you load the car. Wet grass and lightning risk are the deal-breakers."
+      copy: "Probably playable, but check field conditions before loading the car."
     },
     {
       title: "Errands",
       good: rainChance < 60 && wind < 28,
-      copy: "A decent window for normal running around. If rain chances climb, hit the quick stops first."
+      copy: "A decent window for normal running around. Hit the quick stops first if rain is building."
     }
   ];
 
   items.forEach(item => {
-    const card = document.createElement("div");
-    card.className = "lifestyle-card";
-
     let label = "Good";
     let className = "good";
 
@@ -314,41 +355,24 @@ function renderLifestyle(weather, forecast) {
       className = "poor";
     }
 
+    const card = document.createElement("div");
+    card.className = "lifestyle-card";
+
     card.innerHTML = `
       <span class="lifestyle-score ${className}">${label}</span>
       <h3>${item.title}</h3>
       <p>${item.copy}</p>
     `;
 
-    container.appendChild(card);
+    grid.appendChild(card);
   });
 }
 
-function renderBrief(weather, forecast, name) {
-  const temp = Math.round(weather.main.temp);
-  const feels = Math.round(weather.main.feels_like);
-  const wind = Math.round(weather.wind.speed);
-  const desc = weather.weather[0].description;
-  const rainChance = getRainChance(forecast);
-
-  let message = `Right now in ${name}, it’s ${temp}° and ${desc}. It feels like ${feels}° with wind around ${wind} mph. `;
-
-  if (rainChance >= 60) {
-    message += "Rain chances are high enough that you should treat today as a carry-an-umbrella, check-the-radar kind of day.";
-  } else if (rainChance >= 30) {
-    message += "There’s enough rain potential to keep an eye on the sky, but it does not look like a total washout.";
-  } else {
-    message += "Overall, this looks like a pretty manageable weather day for most normal plans.";
-  }
-
-  document.getElementById("localBrief").textContent = message;
-}
-
 function renderDetails(weather, air) {
-  document.getElementById("sunriseTime").textContent = formatTime(weather.sys.sunrise);
-  document.getElementById("sunsetTime").textContent = formatTime(weather.sys.sunset);
+  document.getElementById("sunrise").textContent = formatTime(weather.sys.sunrise);
+  document.getElementById("sunset").textContent = formatTime(weather.sys.sunset);
 
-  const aqi = air.list?.[0]?.main?.aqi || null;
+  const aqi = air?.list?.[0]?.main?.aqi;
   document.getElementById("airQuality").textContent = getAqiLabel(aqi);
 }
 
@@ -359,35 +383,40 @@ async function loadAlerts(lat, lon) {
   alertsList.innerHTML = "";
 
   try {
-    const pointsRes = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
-    const points = await pointsRes.json();
+    const pointRes = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
+    const pointData = await pointRes.json();
 
-    if (!points.properties?.forecastZone) {
+    const zoneUrl = pointData.properties?.forecastZone;
+
+    if (!zoneUrl) {
       alertsSection.classList.add("hidden");
       return;
     }
 
-    const zone = points.properties.forecastZone.split("/").pop();
-    const alertsRes = await fetch(`https://api.weather.gov/alerts/active/zone/${zone}`);
-    const alerts = await alertsRes.json();
+    const zone = zoneUrl.split("/").pop();
+    const alertRes = await fetch(`https://api.weather.gov/alerts/active/zone/${zone}`);
+    const alertData = await alertRes.json();
 
-    if (!alerts.features?.length) {
+    if (!alertData.features || !alertData.features.length) {
       alertsSection.classList.add("hidden");
       return;
     }
 
-    alerts.features.forEach(alert => {
+    alertData.features.forEach(alert => {
       const div = document.createElement("div");
       div.className = "alert-card";
+
       div.innerHTML = `
         <strong>${alert.properties.event}</strong>
         <p>${alert.properties.headline || "Weather alert issued for your area."}</p>
       `;
+
       alertsList.appendChild(div);
     });
 
     alertsSection.classList.remove("hidden");
-  } catch {
+  } catch (error) {
+    console.warn("NWS alerts unavailable", error);
     alertsSection.classList.add("hidden");
   }
 }
@@ -404,6 +433,10 @@ function renderMap(lat, lon) {
   }
 
   updateMapLayer("precipitation_new");
+
+  setTimeout(() => {
+    map.invalidateSize();
+  }, 250);
 }
 
 function updateMapLayer(layerName) {
@@ -458,7 +491,7 @@ function loadFavorites() {
 
     pill.innerHTML = `
       <span>${getFavoriteIcon(place.name)}</span>
-      <div>${place.name}<br><small>${place.state || place.country}</small></div>
+      <div>${place.name}<br><small>${place.state || place.country || ""}</small></div>
     `;
 
     pill.addEventListener("click", () => {
@@ -475,8 +508,8 @@ function getFavoriteIcon(name) {
   const lower = name.toLowerCase();
 
   if (lower.includes("beach") || lower.includes("myrtle")) return "🌊";
-  if (lower.includes("mount") || lower.includes("denver")) return "🏔️";
   if (lower.includes("lake")) return "🌤️";
+  if (lower.includes("mount") || lower.includes("denver")) return "🏔️";
   if (lower.includes("city")) return "🏙️";
 
   return "⛅";
@@ -525,13 +558,13 @@ function formatPlace(place) {
 
 function showSections() {
   [
-    "currentSection",
-    "briefSection",
+    "currentWeather",
+    "weathermanNote",
     "rainTimingSection",
     "forecastSection",
     "lifestyleSection",
-    "radarSection",
-    "detailsSection"
+    "mapSection",
+    "extraDetails"
   ].forEach(id => document.getElementById(id).classList.remove("hidden"));
 }
 
