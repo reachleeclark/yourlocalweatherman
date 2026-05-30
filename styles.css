@@ -5,8 +5,8 @@
   --text: #1f2937;
   --muted: #64748b;
   --white: #ffffff;
-  --shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
-  --radius: 22px;
+  --shadow: 0 18px 45px rgba(15, 23, 42, 0.14);
+  --radius: 24px;
 }
 
 * {
@@ -16,7 +16,7 @@
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: linear-gradient(180deg, #f7fbff 0%, #ffffff 50%, #eef7ff 100%);
+  background: linear-gradient(180deg, #f7fbff 0%, #ffffff 48%, #eef7ff 100%);
   color: var(--text);
 }
 
@@ -44,22 +44,22 @@ body {
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(7, 31, 58, 0.5), rgba(7, 31, 58, 0.3));
+  background: linear-gradient(180deg, rgba(7, 31, 58, 0.52), rgba(7, 31, 58, 0.28));
   z-index: 1;
 }
 
 .hero-content {
   position: relative;
   z-index: 2;
-  width: min(960px, calc(100% - 32px));
+  width: min(980px, calc(100% - 32px));
   text-align: center;
   color: white;
   padding: 48px 0;
 }
 
 .logo {
-  width: 110px;
-  max-width: 35vw;
+  width: 112px;
+  max-width: 36vw;
   margin-bottom: 14px;
 }
 
@@ -70,24 +70,28 @@ body {
   letter-spacing: -0.05em;
 }
 
-.hero-subtitle {
+.tagline {
   font-size: clamp(1rem, 2.2vw, 1.3rem);
   margin: 16px 0 26px;
 }
 
-.search-box {
+.search-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 28px;
+  padding: 14px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+.search-row {
   display: grid;
   grid-template-columns: 1fr auto auto;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 26px;
-  padding: 14px;
-  box-shadow: var(--shadow);
 }
 
 input {
   border: 1px solid #dbeafe;
-  border-radius: 17px;
+  border-radius: 18px;
   padding: 15px 16px;
   font-size: 1rem;
   outline: none;
@@ -95,7 +99,7 @@ input {
 
 button {
   border: 0;
-  border-radius: 17px;
+  border-radius: 18px;
   background: var(--blue);
   color: white;
   padding: 14px 18px;
@@ -113,13 +117,17 @@ button:hover {
 }
 
 .suggestions {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 76px;
   background: white;
   color: var(--text);
   border-radius: 18px;
   box-shadow: var(--shadow);
   overflow: hidden;
   text-align: left;
-  margin-top: 10px;
+  z-index: 50;
 }
 
 .suggestion-item {
@@ -132,24 +140,28 @@ button:hover {
   background: #f0f9ff;
 }
 
-.page-wrap {
+.container {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
 }
 
-.weather-section {
+.section {
   margin: 34px 0;
 }
 
-.section-heading-row {
+.section-header {
+  margin-bottom: 16px;
+}
+
+.section-header.split {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 16px;
 }
 
 .eyebrow {
+  display: block;
   margin: 0 0 5px;
   color: var(--blue);
   font-weight: 900;
@@ -159,18 +171,26 @@ button:hover {
 }
 
 h2 {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: clamp(1.7rem, 3vw, 2.35rem);
   letter-spacing: -0.035em;
 }
 
-.section-heading-row h2 {
-  margin-bottom: 0;
+.helper-text {
+  margin: 8px 0 0;
+  color: var(--muted);
 }
 
-.small-note {
-  margin-top: -8px;
-  color: var(--muted);
+.card,
+.forecast-card,
+.lifestyle-card,
+.favorite-pill,
+.alert-card,
+.rain-card {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(219, 234, 254, 0.95);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 
 .current-grid {
@@ -179,20 +199,7 @@ h2 {
   gap: 16px;
 }
 
-.weather-card,
-.note-card,
-.forecast-card,
-.lifestyle-card,
-.favorite-pill,
-.alert-card,
-.rain-bar-card {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(219, 234, 254, 0.95);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.weather-card {
+.card {
   padding: 22px;
   min-height: 130px;
 }
@@ -220,17 +227,17 @@ h2 {
   width: 90px;
 }
 
-.weather-card span {
+.stat-card span {
   display: block;
   color: var(--muted);
   margin-bottom: 10px;
 }
 
-.weather-card strong {
+.stat-card strong {
   font-size: 1.65rem;
 }
 
-.favorite-save-btn {
+.favorite-save {
   background: #fef3c7;
   color: #92400e;
   white-space: nowrap;
@@ -257,7 +264,6 @@ h2 {
 }
 
 .note-card {
-  padding: 22px;
   font-size: 1.08rem;
   line-height: 1.65;
 }
@@ -350,7 +356,7 @@ h2 {
   margin-top: 16px;
 }
 
-.rain-bar-card {
+.rain-card {
   padding: 14px;
   text-align: center;
 }
@@ -383,7 +389,7 @@ h2 {
   font-weight: 900;
 }
 
-.map-buttons {
+.map-controls {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -414,14 +420,14 @@ h2 {
   margin: 34px 0;
 }
 
-footer {
+.footer {
   text-align: center;
   color: var(--muted);
   padding: 36px 20px;
 }
 
 @media (max-width: 900px) {
-  .search-box,
+  .search-row,
   .current-grid,
   .forecast-grid,
   .lifestyle-grid,
@@ -430,12 +436,12 @@ footer {
     grid-template-columns: 1fr;
   }
 
-  .section-heading-row {
+  .section-header.split {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .favorite-save-btn {
+  .favorite-save {
     width: 100%;
   }
 
