@@ -2,80 +2,123 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-  <title>Your Local Weatherman | Calm, Clear Local Weather Guidance</title>
-  <meta name="description" content="Your Local Weatherman gives calm, practical weather guidance, radar, local conditions, sunrise, sunset, air quality, and planning tips for real life." />
-
-  <meta property="og:title" content="Your Local Weatherman" />
-  <meta property="og:description" content="Calm, clear local weather guidance for real life." />
-  <meta property="og:type" content="website" />
-
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2285%22>🌤️</text></svg>">
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <link rel="stylesheet" href="styles.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Local Weatherman</title>
+  <meta name="description" content="Simple, calm, practical local weather guidance." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="icon" href="assets/favicon.png" />
 </head>
 
 <body>
-
-  <section class="hero">
+  <header class="hero">
     <div class="hero-overlay"></div>
-
     <div class="hero-content">
-      <img src="logo.png" class="logo" alt="Your Local Weatherman logo"/>
+      <img src="assets/logo.png" class="logo" alt="Your Local Weatherman" />
+      <h1>Your Local Weatherman</h1>
+      <p>Clear, calm weather guidance for real life.</p>
 
-      <p class="hero-tagline">Weather guidance that feels calm, clear, and local.</p>
-
-      <div class="search-box">
-        <div class="input-wrap">
-          <input id="cityInput" type="text" placeholder="Enter ZIP, city, or city/state" autocomplete="off"/>
+      <div class="search-card">
+        <div class="search-row">
+          <input id="locationInput" type="text" placeholder="City, state or ZIP code" />
+          <button id="searchBtn">Get Weather</button>
+          <button id="geoBtn" class="secondary-btn">Use My Location</button>
         </div>
-        <button onclick="getWeather()">Get Forecast</button>
+        <div id="suggestions" class="suggestions hidden"></div>
       </div>
-
-      <button class="location-btn" onclick="getWeatherByLocation()">📍 Use My Location</button>
-
-      <div id="savedLocations" class="saved-locations"></div>
     </div>
-  </section>
+  </header>
 
   <main>
-    <section class="weather-section">
-      <div id="weatherResult" class="weather-container">
-        <div class="welcome-card">
-          <div class="welcome-icon">🌤️</div>
-          <h2>Know what’s coming.</h2>
-          <p>Enter your ZIP code, city, or city/state to see current conditions, radar, alerts, air quality, sunrise/sunset, and practical guidance.</p>
+    <section id="currentSection" class="hidden">
+      <div class="section-top">
+        <div>
+          <p class="eyebrow">Current Conditions</p>
+          <h2 id="locationName">--</h2>
         </div>
+        <button id="saveFavoriteBtn" class="favorite-btn">Add to My Favorite Places</button>
       </div>
+
+      <div class="current-grid">
+        <div class="card main-current">
+          <div>
+            <p id="weatherDescription">--</p>
+            <h3 id="currentTemp">--°</h3>
+          </div>
+          <img id="weatherIcon" alt="" />
+        </div>
+        <div class="card"><span>Feels Like</span><strong id="feelsLike">--°</strong></div>
+        <div class="card"><span>Wind</span><strong id="windSpeed">-- mph</strong></div>
+        <div class="card"><span>Humidity</span><strong id="humidity">--%</strong></div>
+      </div>
+    </section>
+
+    <section id="favoritesSection" class="hidden">
+      <p class="eyebrow">Quick Access</p>
+      <h2>My Favorite Places</h2>
+      <div id="favoritesList" class="favorites-list"></div>
+    </section>
+
+    <section id="briefSection" class="hidden">
+      <p class="eyebrow">Weatherman’s Note</p>
+      <h2>Today’s Local Brief</h2>
+      <div id="localBrief" class="card brief-card"></div>
+    </section>
+
+    <section id="rainTimingSection" class="hidden">
+      <p class="eyebrow">Timing</p>
+      <h2>Rain Timing</h2>
+      <p class="section-note">Based on available 3-hour forecast blocks. True hourly can be added later with a different API endpoint.</p>
+      <div id="rainSummary" class="card brief-card"></div>
+      <div id="rainBars" class="rain-bars"></div>
+    </section>
+
+    <section id="alertsSection" class="hidden">
+      <p class="eyebrow">Safety</p>
+      <h2>Local Weather Alerts</h2>
+      <div id="alertsList"></div>
+    </section>
+
+    <section id="forecastSection" class="hidden">
+      <p class="eyebrow">Outlook</p>
+      <h2>5-Day Forecast</h2>
+      <div id="forecastCards" class="forecast-grid"></div>
+    </section>
+
+    <section id="lifestyleSection" class="hidden">
+      <p class="eyebrow">Real-Life Guidance</p>
+      <h2>Should You Go For It?</h2>
+      <div id="lifestyleCards" class="lifestyle-grid"></div>
+    </section>
+
+    <section id="radarSection" class="hidden radar-section">
+      <p class="eyebrow">Radar & Maps</p>
+      <h2>Local Weather Map</h2>
+      <div class="map-controls">
+        <button class="map-layer active" data-layer="precipitation_new">Rain</button>
+        <button class="map-layer" data-layer="clouds_new">Clouds</button>
+        <button class="map-layer" data-layer="wind_new">Wind</button>
+        <button class="map-layer" data-layer="temp_new">Temp</button>
+      </div>
+      <div id="weatherMap"></div>
+    </section>
+
+    <section id="detailsSection" class="details-grid hidden">
+      <div class="detail-card sunrise"><h3>Sunrise</h3><p id="sunriseTime">--</p></div>
+      <div class="detail-card sunset"><h3>Sunset</h3><p id="sunsetTime">--</p></div>
+      <div class="detail-card air"><h3>Air Quality</h3><p id="airQuality">--</p></div>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <p>© 2026 Your Local Weatherman. All rights reserved.</p>
-    <button onclick="openContactForm()">Contact Us</button>
+  <footer>
+    <div class="footer-overlay"></div>
+    <div class="footer-content">
+      <h2>Your Local Weatherman</h2>
+      <p>Weather made calmer, clearer, and easier to use.</p>
+    </div>
   </footer>
 
-  <div id="contactModal" class="modal">
-    <div class="modal-content">
-      <button class="close-modal" onclick="closeContactForm()">×</button>
-      <h2>Contact Us</h2>
-      <p>Have a question or suggestion? Send us a note.</p>
-
-      <form id="contactForm">
-        <input type="text" name="name" placeholder="Your name" required />
-        <input type="email" name="email" placeholder="Your email" required />
-        <textarea name="message" placeholder="Your message" required></textarea>
-        <button type="submit">Send Message</button>
-      </form>
-
-      <p id="formStatus" class="form-status"></p>
-    </div>
-  </div>
-
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="script.js"></script>
-
 </body>
 </html>
