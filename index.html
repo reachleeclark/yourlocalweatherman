@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Your Local Weatherman</title>
-  <meta name="description" content="Clear, calm local weather guidance for real life." />
+  <meta name="description" content="Simple, calm, practical weather guidance for real life." />
 
   <link rel="stylesheet" href="style.css"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -13,107 +13,122 @@
 </head>
 
 <body>
-
   <section class="hero">
     <div class="hero-overlay"></div>
-    <img src="assets/hero.jpg" class="hero-image" alt="Weather background">
+    <img src="assets/hero.jpg" class="hero-image" alt="Weather landscape">
 
     <div class="hero-content">
       <img src="assets/logo.png" class="logo" alt="Your Local Weatherman">
 
       <h1>Your Local Weatherman</h1>
-      <p class="hero-subtitle">Simple, calm weather guidance for real life.</p>
+      <p class="tagline">Simple, calm weather guidance for real life.</p>
 
-      <div class="search-box">
-        <input id="locationInput" type="text" placeholder="Enter city, state or ZIP code">
-        <button id="searchBtn">Get Weather</button>
-        <button id="geoBtn" class="secondary-btn">Use My Location</button>
+      <div class="search-panel">
+        <div class="search-row">
+          <input id="locationInput" type="text" placeholder="Enter city, state or ZIP code" />
+          <button id="searchBtn">Get Weather</button>
+          <button id="geoBtn" class="secondary-btn">Use My Location</button>
+        </div>
+        <div id="suggestions" class="suggestions hidden"></div>
       </div>
-
-      <div id="suggestions" class="suggestions hidden"></div>
     </div>
   </section>
 
-  <main class="page-wrap">
+  <main class="container">
 
-    <section id="currentWeather" class="weather-section hidden">
-      <div class="section-heading-row">
+    <section id="currentSection" class="section hidden">
+      <div class="section-header split">
         <div>
-          <p class="eyebrow">Current Conditions</p>
+          <span class="eyebrow">Current Conditions</span>
           <h2 id="locationName">--</h2>
         </div>
-        <button id="saveFavoriteBtn" class="favorite-save-btn">Add to My Favorite Places</button>
+        <button id="saveFavoriteBtn" class="favorite-save">Add to My Favorite Places</button>
       </div>
 
       <div class="current-grid">
-        <div class="weather-card current-main">
+        <div class="card current-main">
           <div>
             <p id="weatherDescription">--</p>
-            <h3 id="temperature">--°</h3>
+            <h3 id="currentTemp">--°</h3>
           </div>
           <img id="weatherIcon" alt="">
         </div>
 
-        <div class="weather-card">
+        <div class="card stat-card">
           <span>Feels Like</span>
           <strong id="feelsLike">--°</strong>
         </div>
 
-        <div class="weather-card">
+        <div class="card stat-card">
           <span>Wind</span>
           <strong id="windSpeed">-- mph</strong>
         </div>
 
-        <div class="weather-card">
+        <div class="card stat-card">
           <span>Humidity</span>
           <strong id="humidity">--%</strong>
         </div>
       </div>
     </section>
 
-    <section id="favoritesSection" class="weather-section hidden">
-      <p class="eyebrow">Quick Access</p>
-      <h2>My Favorite Places</h2>
+    <section id="favoritesSection" class="section hidden">
+      <div class="section-header">
+        <span class="eyebrow">Quick Access</span>
+        <h2>My Favorite Places</h2>
+      </div>
       <div id="favoritesList" class="favorites-list"></div>
     </section>
 
-    <section id="weathermanNote" class="weather-section hidden">
-      <p class="eyebrow">Weatherman’s Note</p>
-      <h2>Today’s Local Brief</h2>
-      <div id="localBrief" class="note-card"></div>
+    <section id="briefSection" class="section hidden">
+      <div class="section-header">
+        <span class="eyebrow">Weatherman’s Note</span>
+        <h2>Today’s Local Brief</h2>
+      </div>
+      <div id="localBrief" class="card note-card"></div>
     </section>
 
-    <section id="rainTimingSection" class="weather-section hidden">
-      <p class="eyebrow">Timing</p>
-      <h2>Rain Timing</h2>
-      <p class="small-note">Uses available 3-hour forecast blocks. True hourly can be added later with a different API endpoint.</p>
-      <div id="rainSummary" class="note-card"></div>
+    <section id="rainTimingSection" class="section hidden">
+      <div class="section-header">
+        <span class="eyebrow">Timing</span>
+        <h2>Rain Timing</h2>
+        <p class="helper-text">Based on available 3-hour forecast blocks. True hourly can be added later with a different API endpoint.</p>
+      </div>
+
+      <div id="rainSummary" class="card note-card"></div>
       <div id="rainBars" class="rain-bars"></div>
     </section>
 
-    <section id="alertsSection" class="weather-section hidden">
-      <p class="eyebrow">Safety</p>
-      <h2>Local Weather Alerts</h2>
+    <section id="alertsSection" class="section hidden">
+      <div class="section-header">
+        <span class="eyebrow">Safety</span>
+        <h2>Local Weather Alerts</h2>
+      </div>
       <div id="alertsList"></div>
     </section>
 
-    <section id="forecastSection" class="weather-section hidden">
-      <p class="eyebrow">Outlook</p>
-      <h2>5-Day Forecast</h2>
+    <section id="forecastSection" class="section hidden">
+      <div class="section-header">
+        <span class="eyebrow">Outlook</span>
+        <h2>5-Day Forecast</h2>
+      </div>
       <div id="forecastGrid" class="forecast-grid"></div>
     </section>
 
-    <section id="lifestyleSection" class="weather-section hidden">
-      <p class="eyebrow">Real-Life Guidance</p>
-      <h2>Should You Go For It?</h2>
+    <section id="lifestyleSection" class="section hidden">
+      <div class="section-header">
+        <span class="eyebrow">Real-Life Guidance</span>
+        <h2>Should You Go For It?</h2>
+      </div>
       <div id="lifestyleGrid" class="lifestyle-grid"></div>
     </section>
 
-    <section id="mapSection" class="weather-section hidden">
-      <p class="eyebrow">Radar & Maps</p>
-      <h2>Local Weather Map</h2>
+    <section id="mapSection" class="section hidden">
+      <div class="section-header">
+        <span class="eyebrow">Radar & Maps</span>
+        <h2>Local Weather Map</h2>
+      </div>
 
-      <div class="map-buttons">
+      <div class="map-controls">
         <button class="map-layer active" data-layer="precipitation_new">Rain</button>
         <button class="map-layer" data-layer="clouds_new">Clouds</button>
         <button class="map-layer" data-layer="wind_new">Wind</button>
@@ -123,18 +138,18 @@
       <div id="weatherMap"></div>
     </section>
 
-    <section id="extraDetails" class="details-grid hidden">
-      <div class="weather-card">
+    <section id="detailsSection" class="details-grid hidden">
+      <div class="card stat-card">
         <span>Sunrise</span>
         <strong id="sunrise">--</strong>
       </div>
 
-      <div class="weather-card">
+      <div class="card stat-card">
         <span>Sunset</span>
         <strong id="sunset">--</strong>
       </div>
 
-      <div class="weather-card">
+      <div class="card stat-card">
         <span>Air Quality</span>
         <strong id="airQuality">--</strong>
       </div>
@@ -142,7 +157,7 @@
 
   </main>
 
-  <footer>
+  <footer class="footer">
     <p>Your Local Weatherman</p>
   </footer>
 
