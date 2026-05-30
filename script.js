@@ -1,599 +1,545 @@
-const apiKey = "1d580865d7039710695991aae9a625f6";
-const contactAccessKey = "PASTE_YOUR_WEB3FORMS_ACCESS_KEY_HERE";
+const API_KEY = "PASTE_YOUR_OPENWEATHER_API_KEY_HERE";
 
-let currentMap = null;
-let activeWeatherLayer = null;
+const locationInput = document.getElementById("locationInput");
+const searchBtn = document.getElementById("searchBtn");
+const geoBtn = document.getElementById("geoBtn");
+const suggestionsBox = document.getElementById("suggestions");
+const saveFavoriteBtn = document.getElementById("saveFavoriteBtn");
 
-window.onload = function () {
-  renderSavedLocations();
-};
+let currentLocation = null;
+let map;
+let weatherLayer;
 
-async function getWeather() {
-  const query = document.getElementById("cityInput").value.trim();
+searchBtn.addEventListener("click", () => handleSearch(locationInput.value));
+geoBtn.addEventListener("click", useCurrentLocation);
+saveFavoriteBtn.addEventListener("click", saveFavorite);
 
-  if (!query) {
-    showMessage("Please enter a location.", "Example: 67217 or Wichita, KS.");
+locationInput.addEventListener("input", debounce(async () => {
+  const query = locationInput.value.trim();
+
+  if (query.length < 3) {
+    suggestionsBox.classList.add("hidden");
     return;
   }
 
-  if (/^\d{5}$/.test(query)) {
-    loadWeather(
-      `https://api.openweathermap.org/data/2.5/weather?zip=${query},US&units=imperial&appid=${apiKey}`,
-      `https://api.openweathermap.org/data/2.5/forecast?zip=${query},US&units=imperial&appid=${apiKey}`
-    );
-  } else {
-    loadWeather(
-      `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(query)}&units=imperial&appid=${apiKey}`,
-      `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(query)}&units=imperial&appid=${apiKey}`
-    );
+  const results = await getLocationSuggestions(query);
+  renderSuggestions(results);
+}, 350));
+
+document.querySelectorAll(".map-layer").forEach(button => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".map-layer").forEach(btn => btn.classList.remove("active"));
+    button.classList.add("active");
+    updateMapLayer(button.dataset.layer);
+  });
+});
+
+loadFavorites();
+
+async function handleSearch(query) {
+  if (!query.trim()) return;
+
+  const results = await getLocationSuggestions(query);
+
+  if (!results.length) {
+    alert("I couldn't find that location. Try city + state, like Myrtle Beach, South Carolina.");
+    return;
   }
+
+  const place = results[0];
+  await loadWeather(place.lat, place.lon, place.name, place.state, place.country);
+  suggestionsBox.classList.add("hidden");
 }
 
-function getWeatherByLocation() {
-  if (!navigator.geolocation) {
-    showMessage("Location not supported.", "Please enter a ZIP code or city.");
+async function getLocationSuggestions(query) {
+  const cleaned = query.trim();
+
+  if (/^\d{5}$/.test(cleaned)) {
+    const zipUrl = `https://api.openweathermap.org/geo/1.0/zip?zip=${cleaned},US&appid=${API_KEY}`;
+    const zipResponse = await fetch(zipUrl);
+    if (!zipResponse.ok) return [];
+    const zipData = await zipResponse.json();
+
+    return [{
+      name: zipData.name,
+      state: "",
+      country: zipData.country,
+      lat: zipData.lat,
+      lon: zipData.lon
+    }];
+  }
+
+  const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cleaned)}&limit=6&appid=${API_KEY}`;
+  const response = await fetch(url);
+  if (!response.ok) return [];
+
+  const data = await response.json();
+
+  return data.map(item => ({
+    name: item.name,
+    state: item.state || "",
+    country: item.country,
+    lat: item.lat,
+    lon: item.lon
+  }));
+}
+
+function renderSuggestions(results) {
+  if (!results.length) {
+    suggestionsBox.classList.add("hidden");
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(position => {
-    const lat = position.coords.latitude;
-    const lon = position.coords.longitude;
+  suggestionsBox.innerHTML = "";
 
-    loadWeather(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`,
-      `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`
+  results.forEach(place => {
+    const item = document.createElement("div");
+    item.className = "suggestion-item";
+    item.textContent = formatPlace(place);
+
+    item.addEventListener("click", async () => {
+      locationInput.value = formatPlace(place);
+      suggestionsBox.classList.add("hidden");
+      await loadWeather(place.lat, place.lon, place.name, place.state, place.country);
+    });
+
+    suggestionsBox.appendChild(item);
+  });
+
+  suggestionsBox.classList.remove("hidden");
+}
+
+async function useCurrentLocation() {
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported on this device.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async position => {
+    const { latitude, longitude } = position.coords;
+
+    const reverseUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${API_KEY}`;
+    const response = await fetch(reverseUrl);
+    const data = await response.json();
+    const place = data[0];
+
+    await loadWeather(
+      latitude,
+      longitude,
+      place?.name || "Your Location",
+      place?.state || "",
+      place?.country || "US"
     );
   }, () => {
-    showMessage("Unable to access your location.", "Please enter a ZIP code or city instead.");
+    alert("I couldn't access your location.");
   });
 }
 
-async function loadWeather(currentUrl, forecastUrl) {
-  try {
-    showMessage("Loading your forecast...", "Checking radar, alerts, current conditions, and practical guidance.");
+async function loadWeather(lat, lon, name, state, country) {
+  currentLocation = { lat, lon, name, state, country };
 
-    const currentResponse = await fetch(currentUrl);
-    const forecastResponse = await fetch(forecastUrl);
+  const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=imperial&appid=${API_KEY}`;
+  const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=imperial&appid=${API_KEY}`;
+  const airUrl = `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`;
 
-    if (!currentResponse.ok || !forecastResponse.ok) {
-      throw new Error("Weather unavailable");
-    }
+  const [weatherRes, forecastRes, airRes] = await Promise.all([
+    fetch(weatherUrl),
+    fetch(forecastUrl),
+    fetch(airUrl)
+  ]);
 
-    const currentData = await currentResponse.json();
-    const forecastData = await forecastResponse.json();
+  const weather = await weatherRes.json();
+  const forecast = await forecastRes.json();
+  const air = await airRes.json();
 
-    const airData = await getAirQualityData(currentData.coord.lat, currentData.coord.lon);
-    const alerts = await getWeatherAlerts(currentData.coord.lat, currentData.coord.lon);
-
-    renderWeather(currentData, forecastData, airData, alerts);
-
-  } catch {
-    showMessage("Unable to retrieve weather data.", "Please check the location and try again.");
-  }
+  renderCurrent(weather, name, state);
+  renderForecast(forecast);
+  renderRainTiming(forecast);
+  renderLifestyle(weather, forecast);
+  renderBrief(weather, forecast, name);
+  renderDetails(weather, air);
+  loadAlerts(lat, lon);
+  renderMap(lat, lon);
+  showSections();
+  loadFavorites();
 }
 
-async function getAirQualityData(lat, lon) {
-  try {
-    const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`
-    );
-    return await response.json();
-  } catch {
-    return null;
-  }
+function renderCurrent(weather, name, state) {
+  document.getElementById("locationName").textContent = state ? `${name}, ${state}` : name;
+  document.getElementById("weatherDescription").textContent = weather.weather[0].description;
+  document.getElementById("currentTemp").textContent = `${Math.round(weather.main.temp)}°`;
+  document.getElementById("feelsLike").textContent = `${Math.round(weather.main.feels_like)}°`;
+  document.getElementById("windSpeed").textContent = `${Math.round(weather.wind.speed)} mph`;
+  document.getElementById("humidity").textContent = `${weather.main.humidity}%`;
+  document.getElementById("weatherIcon").src = `https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`;
 }
 
-async function getWeatherAlerts(lat, lon) {
-  try {
-    const response = await fetch(`https://api.weather.gov/alerts/active?point=${lat},${lon}`);
-    const data = await response.json();
-    return data.features || [];
-  } catch {
-    return [];
-  }
-}
+function renderForecast(forecast) {
+  const container = document.getElementById("forecastCards");
+  container.innerHTML = "";
 
-function renderWeather(currentData, forecastData, airData, alerts) {
-  const temp = Math.round(currentData.main.temp);
-  const feelsLike = Math.round(currentData.main.feels_like);
-  const humidity = currentData.main.humidity;
-  const wind = Math.round(currentData.wind.speed);
-  const description = currentData.weather[0].description;
-  const condition = currentData.weather[0].main;
-  const icon = getWeatherIcon(condition);
+  const daily = {};
 
-  const sunrise = formatTime(currentData.sys.sunrise);
-  const sunset = formatTime(currentData.sys.sunset);
-  const airQuality = getAirQuality(airData?.list?.[0]?.main?.aqi);
-
-  const rainTiming = getRainTiming(forecastData);
-  const bestWindow = getBestWindow(forecastData);
-  const alertHTML = buildAlerts(alerts);
-  const stormTimeline = buildStormTimeline(forecastData);
-  const lifestyleScores = buildLifestyleScores(temp, wind, description, forecastData);
-
-  const forecastCards = forecastData.list.slice(0, 8).map(item => {
+  forecast.list.forEach(item => {
     const date = new Date(item.dt * 1000);
-    const conditionClass = getConditionClass(item.weather[0].main);
+    const day = date.toLocaleDateString("en-US", { weekday: "short" });
 
-    return `
-      <div class="forecast-card ${conditionClass}">
-        <div class="forecast-day">${date.toLocaleDateString([], { weekday: "short" })}</div>
-        <div class="forecast-time">${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div>
-        <div class="forecast-icon">${getWeatherIcon(item.weather[0].main)}</div>
-        <div class="forecast-temp">${Math.round(item.main.temp)}°F</div>
-        <div class="forecast-desc">${item.weather[0].description}</div>
-      </div>
-    `;
-  }).join("");
-
-  const extendedCards = buildExtendedOutlook(forecastData);
-
-  document.getElementById("weatherResult").innerHTML = `
-    ${alertHTML}
-
-    <div class="current-weather-card">
-      <div class="current-left">
-        <div class="current-icon">${icon}</div>
-        <div>
-          <h2>${currentData.name}</h2>
-          <p class="weather-desc">${description}</p>
-        </div>
-      </div>
-
-      <div class="current-temp">${temp}°F</div>
-
-      <div class="weather-stats">
-        <div><span>Feels Like</span><strong>${feelsLike}°F</strong></div>
-        <div><span>Humidity</span><strong>${humidity}%</strong></div>
-        <div><span>Wind</span><strong>${wind} mph</strong></div>
-      </div>
-    </div>
-
-    <button class="save-btn" onclick="saveLocation('${currentData.name.replace(/'/g, "")}')">⭐ Save ${currentData.name}</button>
-
-    <div class="note-card">
-      <div class="note-icon">💬</div>
-      <div>
-        <h3>Weatherman’s Note</h3>
-        <p>${getWeatherNote(temp, wind, description)}</p>
-      </div>
-    </div>
-
-    <div class="daily-brief-card">
-      <h3>Today’s Local Brief</h3>
-      <p>${getDailyBrief(currentData.name, temp, wind, description, rainTiming, bestWindow)}</p>
-    </div>
-
-    <div class="quick-grid">
-      <div class="quick-card">
-        <div class="quick-icon">✅</div>
-        <h3>Best Window Today</h3>
-        <p>${bestWindow}</p>
-      </div>
-
-      <div class="quick-card">
-        <div class="quick-icon">🌧️</div>
-        <h3>Rain Timing</h3>
-        <p>${rainTiming}</p>
-      </div>
-
-      <div class="quick-card">
-        <div class="quick-icon">🚗</div>
-        <h3>Driving Guidance</h3>
-        <p>${getVehicleTip(temp, wind, description)}</p>
-      </div>
-    </div>
-
-    <div class="score-grid">
-      ${lifestyleScores}
-    </div>
-
-    <div class="storm-card">
-      <h3>Storm Timeline</h3>
-      <p>${stormTimeline}</p>
-    </div>
-
-    <div class="details-grid">
-      <div class="image-detail-card sunrise-bg">
-        <div class="image-overlay"></div>
-        <div class="image-detail-content">
-          <h3>Sunrise</h3>
-          <strong>${sunrise}</strong>
-        </div>
-      </div>
-
-      <div class="image-detail-card sunset-bg">
-        <div class="image-overlay"></div>
-        <div class="image-detail-content">
-          <h3>Sunset</h3>
-          <strong>${sunset}</strong>
-        </div>
-      </div>
-
-      <div class="image-detail-card air-bg">
-        <div class="image-overlay"></div>
-        <div class="image-detail-content">
-          <h3>Air Quality</h3>
-          <strong>${airQuality}</strong>
-        </div>
-      </div>
-    </div>
-
-    <div class="radar-card">
-      <div class="forecast-heading">
-        <h2>Local Radar</h2>
-        <p>Zoomable weather map with selectable precipitation, clouds, wind, and temperature layers.</p>
-      </div>
-
-      <div class="radar-controls">
-        <button onclick="setWeatherLayer('precipitation_new')">Precipitation</button>
-        <button onclick="setWeatherLayer('clouds_new')">Clouds</button>
-        <button onclick="setWeatherLayer('wind_new')">Wind</button>
-        <button onclick="setWeatherLayer('temp_new')">Temperature</button>
-      </div>
-
-      <div id="radarMap"></div>
-      <p id="radarStatus" class="radar-status">Loading radar map...</p>
-    </div>
-
-    <div class="forecast-heading">
-      <h2>Your Day Ahead</h2>
-      <p>Forecast updates in 3-hour intervals.</p>
-    </div>
-
-    <div class="forecast-grid">${forecastCards}</div>
-
-    <div class="forecast-heading extended-heading">
-      <h2>Extended Outlook</h2>
-      <p>A simple multi-day look based on available forecast data.</p>
-    </div>
-
-    <div class="forecast-grid">${extendedCards}</div>
-  `;
-
-  setTimeout(() => renderRadar(currentData.coord.lat, currentData.coord.lon), 300);
-}
-
-function renderRadar(lat, lon) {
-  const radarStatus = document.getElementById("radarStatus");
-
-  try {
-    if (typeof L === "undefined") {
-      radarStatus.textContent = "Radar map library did not load. Please refresh the page.";
-      return;
-    }
-
-    if (currentMap) {
-      currentMap.remove();
-      currentMap = null;
-    }
-
-    currentMap = L.map("radarMap", {
-      scrollWheelZoom: true,
-      zoomControl: true
-    }).setView([lat, lon], 8);
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap contributors",
-      maxZoom: 19
-    }).addTo(currentMap);
-
-    L.marker([lat, lon]).addTo(currentMap);
-
-    setWeatherLayer("precipitation_new");
-
-    setTimeout(() => {
-      currentMap.invalidateSize();
-    }, 250);
-
-    radarStatus.textContent = "Map ready. Use the buttons above to switch weather layers.";
-
-  } catch {
-    if (radarStatus) {
-      radarStatus.textContent = "Radar is temporarily unavailable. Please try again later.";
-    }
-  }
-}
-
-function setWeatherLayer(layerName) {
-  const radarStatus = document.getElementById("radarStatus");
-
-  if (!currentMap) return;
-
-  if (activeWeatherLayer) {
-    currentMap.removeLayer(activeWeatherLayer);
-  }
-
-  activeWeatherLayer = L.tileLayer(
-    `https://tile.openweathermap.org/map/${layerName}/{z}/{x}/{y}.png?appid=${apiKey}`,
-    {
-      opacity: 0.62,
-      maxZoom: 19,
-      attribution: "Weather layers © OpenWeather"
-    }
-  );
-
-  activeWeatherLayer.addTo(currentMap);
-
-  if (radarStatus) {
-    radarStatus.textContent = `Showing ${formatLayerName(layerName)} layer.`;
-  }
-}
-
-function formatLayerName(layerName) {
-  return layerName.replace("_new", "").replace("_", " ");
-}
-
-function buildAlerts(alerts) {
-  if (!alerts.length) {
-    return `
-      <div class="alert-card calm-alert">
-        <strong>No active NWS alerts for this location right now.</strong>
-        <p>That can change quickly, so check back if weather is developing.</p>
-      </div>
-    `;
-  }
-
-  return alerts.slice(0, 3).map(alert => `
-    <div class="alert-card">
-      <strong>${alert.properties.event}</strong>
-      <p>${alert.properties.headline || "Weather alert active for your area."}</p>
-    </div>
-  `).join("");
-}
-
-function buildExtendedOutlook(forecastData) {
-  const days = {};
-
-  forecastData.list.forEach(item => {
-    const date = new Date(item.dt * 1000);
-    const key = date.toLocaleDateString();
-
-    if (!days[key]) {
-      days[key] = {
-        day: date.toLocaleDateString([], { weekday: "short" }),
+    if (!daily[day]) {
+      daily[day] = {
         temps: [],
-        condition: item.weather[0].main,
-        description: item.weather[0].description
+        description: item.weather[0].description,
+        main: item.weather[0].main,
+        icon: item.weather[0].icon
       };
     }
 
-    days[key].temps.push(item.main.temp);
+    daily[day].temps.push(item.main.temp);
   });
 
-  return Object.values(days).slice(0, 5).map(day => `
-    <div class="forecast-card ${getConditionClass(day.condition)}">
-      <div class="forecast-day">${day.day}</div>
-      <div class="forecast-icon">${getWeatherIcon(day.condition)}</div>
-      <div class="forecast-temp">${Math.round(Math.max(...day.temps))}° / ${Math.round(Math.min(...day.temps))}°</div>
-      <div class="forecast-desc">${day.description}</div>
-    </div>
-  `).join("");
+  Object.entries(daily).slice(0, 5).forEach(([day, data]) => {
+    const high = Math.round(Math.max(...data.temps));
+    const low = Math.round(Math.min(...data.temps));
+
+    const card = document.createElement("div");
+    card.className = `forecast-card ${getConditionClass(data.main)}`;
+
+    card.innerHTML = `
+      <h3>${day}</h3>
+      <img src="https://openweathermap.org/img/wn/${data.icon}@2x.png" alt="">
+      <div class="temps">${high}° / ${low}°</div>
+      <p>${data.description}</p>
+    `;
+
+    container.appendChild(card);
+  });
 }
 
-function getRainTiming(forecastData) {
-  const rain = forecastData.list.find(item =>
-    item.weather[0].main.includes("Rain") ||
-    item.weather[0].main.includes("Thunder") ||
-    item.pop > 0.45
-  );
+function renderRainTiming(forecast) {
+  const rainBars = document.getElementById("rainBars");
+  const rainSummary = document.getElementById("rainSummary");
 
-  if (!rain) return "No strong rain signal in the next several forecast windows.";
+  rainBars.innerHTML = "";
 
-  const date = new Date(rain.dt * 1000);
-  return `Rain chances appear higher around ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
+  const nextBlocks = forecast.list.slice(0, 8);
+
+  let highest = {
+    time: "",
+    chance: 0
+  };
+
+  nextBlocks.forEach(item => {
+    const chance = Math.round((item.pop || 0) * 100);
+    const time = new Date(item.dt * 1000).toLocaleTimeString("en-US", {
+      hour: "numeric"
+    });
+
+    if (chance > highest.chance) {
+      highest = { time, chance };
+    }
+
+    const card = document.createElement("div");
+    card.className = "rain-bar-card";
+
+    card.innerHTML = `
+      <div class="rain-time">${time}</div>
+      <div class="rain-bar-track">
+        <div class="rain-bar-fill" style="height:${Math.max(chance, 4)}%"></div>
+      </div>
+      <div class="rain-percent">${chance}%</div>
+    `;
+
+    rainBars.appendChild(card);
+  });
+
+  if (highest.chance >= 60) {
+    rainSummary.textContent = `Rain looks most likely around ${highest.time}, with about a ${highest.chance}% chance. This is the part of the day to plan around.`;
+  } else if (highest.chance >= 30) {
+    rainSummary.textContent = `There is some rain potential, with the best chance around ${highest.time}. Not a guaranteed washout, but worth watching.`;
+  } else {
+    rainSummary.textContent = `Rain chances look pretty low over the next several forecast blocks. Good news for most outdoor plans.`;
+  }
 }
 
-function getBestWindow(forecastData) {
-  const best = forecastData.list.slice(0, 8).find(item =>
-    item.pop < 0.25 &&
-    item.wind.speed < 15 &&
-    item.main.temp > 50 &&
-    item.main.temp < 88
-  );
+function renderLifestyle(weather, forecast) {
+  const container = document.getElementById("lifestyleCards");
+  container.innerHTML = "";
 
-  if (!best) return "No perfect window showing yet. Keep an eye on the forecast blocks below.";
+  const temp = weather.main.temp;
+  const wind = weather.wind.speed;
+  const condition = weather.weather[0].main.toLowerCase();
+  const rainChance = getRainChance(forecast);
 
-  const date = new Date(best.dt * 1000);
-  return `Best-looking window: ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
+  const items = [
+    {
+      title: "Grilling",
+      good: temp > 45 && wind < 18 && rainChance < 45,
+      copy: "Good night to fire it up. Keep an eye on the breeze and have a backup plan if showers creep in."
+    },
+    {
+      title: "Patio Sitting",
+      good: temp > 58 && temp < 90 && rainChance < 35,
+      copy: "Comfortable enough to linger outside. Shade, a light jacket, or bug spray may decide how long you stay."
+    },
+    {
+      title: "Walking",
+      good: temp > 35 && temp < 88 && wind < 22 && !condition.includes("thunder"),
+      copy: "Looks workable for a walk. If the sky looks unsettled, keep it close to home or take the shorter loop."
+    },
+    {
+      title: "Kid Sports",
+      good: temp > 40 && temp < 92 && rainChance < 50 && wind < 24,
+      copy: "Probably playable, but check fields before you load the car. Wet grass and lightning risk are the deal-breakers."
+    },
+    {
+      title: "Errands",
+      good: rainChance < 60 && wind < 28,
+      copy: "A decent window for normal running around. If rain chances climb, hit the quick stops first."
+    }
+  ];
+
+  items.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "lifestyle-card";
+
+    let label = "Good";
+    let className = "good";
+
+    if (!item.good && rainChance < 60) {
+      label = "Use Judgment";
+      className = "okay";
+    }
+
+    if (!item.good && rainChance >= 60) {
+      label = "Not Ideal";
+      className = "poor";
+    }
+
+    card.innerHTML = `
+      <span class="lifestyle-score ${className}">${label}</span>
+      <h3>${item.title}</h3>
+      <p>${item.copy}</p>
+    `;
+
+    container.appendChild(card);
+  });
 }
 
-function buildStormTimeline(forecastData) {
-  const stormWindows = forecastData.list.slice(0, 10).filter(item =>
-    item.weather[0].main.includes("Thunder") ||
-    item.weather[0].description.toLowerCase().includes("storm")
-  );
+function renderBrief(weather, forecast, name) {
+  const temp = Math.round(weather.main.temp);
+  const feels = Math.round(weather.main.feels_like);
+  const wind = Math.round(weather.wind.speed);
+  const desc = weather.weather[0].description;
+  const rainChance = getRainChance(forecast);
 
-  if (!stormWindows.length) {
-    return "No clear thunderstorm signal in the next forecast windows.";
+  let message = `Right now in ${name}, it’s ${temp}° and ${desc}. It feels like ${feels}° with wind around ${wind} mph. `;
+
+  if (rainChance >= 60) {
+    message += "Rain chances are high enough that you should treat today as a carry-an-umbrella, check-the-radar kind of day.";
+  } else if (rainChance >= 30) {
+    message += "There’s enough rain potential to keep an eye on the sky, but it does not look like a total washout.";
+  } else {
+    message += "Overall, this looks like a pretty manageable weather day for most normal plans.";
   }
 
-  const first = new Date(stormWindows[0].dt * 1000);
-  return `Storm chances may increase around ${first.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Keep checking if skies start changing.`;
+  document.getElementById("localBrief").textContent = message;
 }
 
-function buildLifestyleScores(temp, wind, description, forecastData) {
-  const text = description.toLowerCase();
-  const rainSoon = forecastData.list.slice(0, 4).some(item => item.pop > 0.45 || item.weather[0].main.includes("Rain"));
+function renderDetails(weather, air) {
+  document.getElementById("sunriseTime").textContent = formatTime(weather.sys.sunrise);
+  document.getElementById("sunsetTime").textContent = formatTime(weather.sys.sunset);
 
-  const patioScore = scoreLabel(
-    temp >= 60 && temp <= 84 && wind < 16 && !rainSoon,
-    "Great patio weather",
-    "Patio may be iffy"
+  const aqi = air.list?.[0]?.main?.aqi || null;
+  document.getElementById("airQuality").textContent = getAqiLabel(aqi);
+}
+
+async function loadAlerts(lat, lon) {
+  const alertsSection = document.getElementById("alertsSection");
+  const alertsList = document.getElementById("alertsList");
+
+  alertsList.innerHTML = "";
+
+  try {
+    const pointsRes = await fetch(`https://api.weather.gov/points/${lat},${lon}`);
+    const points = await pointsRes.json();
+
+    if (!points.properties?.forecastZone) {
+      alertsSection.classList.add("hidden");
+      return;
+    }
+
+    const zone = points.properties.forecastZone.split("/").pop();
+    const alertsRes = await fetch(`https://api.weather.gov/alerts/active/zone/${zone}`);
+    const alerts = await alertsRes.json();
+
+    if (!alerts.features?.length) {
+      alertsSection.classList.add("hidden");
+      return;
+    }
+
+    alerts.features.forEach(alert => {
+      const div = document.createElement("div");
+      div.className = "alert-card";
+      div.innerHTML = `
+        <strong>${alert.properties.event}</strong>
+        <p>${alert.properties.headline || "Weather alert issued for your area."}</p>
+      `;
+      alertsList.appendChild(div);
+    });
+
+    alertsSection.classList.remove("hidden");
+  } catch {
+    alertsSection.classList.add("hidden");
+  }
+}
+
+function renderMap(lat, lon) {
+  if (!map) {
+    map = L.map("weatherMap").setView([lat, lon], 8);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap"
+    }).addTo(map);
+  } else {
+    map.setView([lat, lon], 8);
+  }
+
+  updateMapLayer("precipitation_new");
+}
+
+function updateMapLayer(layerName) {
+  if (!map) return;
+
+  if (weatherLayer) {
+    map.removeLayer(weatherLayer);
+  }
+
+  weatherLayer = L.tileLayer(
+    `https://tile.openweathermap.org/map/${layerName}/{z}/{x}/{y}.png?appid=${API_KEY}`,
+    {
+      attribution: "Weather data © OpenWeather",
+      opacity: 0.62
+    }
+  ).addTo(map);
+}
+
+function saveFavorite() {
+  if (!currentLocation) return;
+
+  const favorites = JSON.parse(localStorage.getItem("weathermanFavorites") || "[]");
+
+  const exists = favorites.some(place =>
+    Math.abs(place.lat - currentLocation.lat) < 0.01 &&
+    Math.abs(place.lon - currentLocation.lon) < 0.01
   );
 
-  const grillingScore = scoreLabel(
-    temp >= 45 && temp <= 92 && wind < 18 && !rainSoon,
-    "Good grilling window",
-    "Have a backup plan"
-  );
+  if (!exists) {
+    favorites.push(currentLocation);
+    localStorage.setItem("weathermanFavorites", JSON.stringify(favorites));
+  }
 
-  const walkingScore = scoreLabel(
-    temp >= 45 && temp <= 85 && wind < 18 && !rainSoon,
-    "Good walking weather",
-    "Check conditions first"
-  );
-
-  const kidSportsScore = scoreLabel(
-    temp >= 50 && temp <= 88 && wind < 20 && !text.includes("storm") && !rainSoon,
-    "Playable conditions",
-    "Watch the forecast"
-  );
-
-  return `
-    <div class="score-card"><div class="score-icon">🍔</div><h3>Grilling</h3><p>${grillingScore}</p></div>
-    <div class="score-card"><div class="score-icon">🌿</div><h3>Patio</h3><p>${patioScore}</p></div>
-    <div class="score-card"><div class="score-icon">🚶</div><h3>Walking</h3><p>${walkingScore}</p></div>
-    <div class="score-card"><div class="score-icon">⚽</div><h3>Kid Sports</h3><p>${kidSportsScore}</p></div>
-  `;
+  loadFavorites();
 }
 
-function scoreLabel(isGood, goodText, cautionText) {
-  return isGood ? goodText : cautionText;
+function loadFavorites() {
+  const favorites = JSON.parse(localStorage.getItem("weathermanFavorites") || "[]");
+  const section = document.getElementById("favoritesSection");
+  const list = document.getElementById("favoritesList");
+
+  list.innerHTML = "";
+
+  if (!favorites.length) {
+    section.classList.add("hidden");
+    return;
+  }
+
+  favorites.forEach(place => {
+    const pill = document.createElement("div");
+    pill.className = "favorite-pill";
+
+    pill.innerHTML = `
+      <span>${getFavoriteIcon(place.name)}</span>
+      <div>${place.name}<br><small>${place.state || place.country}</small></div>
+    `;
+
+    pill.addEventListener("click", () => {
+      loadWeather(place.lat, place.lon, place.name, place.state, place.country);
+    });
+
+    list.appendChild(pill);
+  });
+
+  section.classList.remove("hidden");
 }
 
-function getDailyBrief(city, temp, wind, description, rainTiming, bestWindow) {
-  return `${city} is currently ${temp}° with ${description}. Winds are around ${wind} mph. ${bestWindow} ${rainTiming}`;
+function getFavoriteIcon(name) {
+  const lower = name.toLowerCase();
+
+  if (lower.includes("beach") || lower.includes("myrtle")) return "🌊";
+  if (lower.includes("mount") || lower.includes("denver")) return "🏔️";
+  if (lower.includes("lake")) return "🌤️";
+  if (lower.includes("city")) return "🏙️";
+
+  return "⛅";
 }
 
-function getConditionClass(condition) {
-  if (condition.includes("Thunder")) return "condition-storm";
-  if (condition.includes("Rain") || condition.includes("Drizzle")) return "condition-rain";
-  if (condition.includes("Snow")) return "condition-snow";
-  if (condition.includes("Cloud")) return "condition-cloud";
-  if (condition.includes("Clear")) return "condition-clear";
-  if (condition.includes("Mist") || condition.includes("Fog") || condition.includes("Haze")) return "condition-fog";
-  return "condition-default";
+function getRainChance(forecast) {
+  const nextSeveral = forecast.list.slice(0, 6);
+  const chances = nextSeveral.map(item => item.pop ? item.pop * 100 : 0);
+  return Math.round(Math.max(...chances));
 }
 
-function getWeatherIcon(condition) {
-  if (condition.includes("Thunder")) return "⛈️";
-  if (condition.includes("Rain")) return "🌧️";
-  if (condition.includes("Drizzle")) return "🌦️";
-  if (condition.includes("Snow")) return "❄️";
-  if (condition.includes("Cloud")) return "☁️";
-  if (condition.includes("Clear")) return "☀️";
-  if (condition.includes("Mist") || condition.includes("Fog") || condition.includes("Haze")) return "🌫️";
-  return "🌤️";
+function getConditionClass(main) {
+  const condition = main.toLowerCase();
+
+  if (condition.includes("clear")) return "condition-clear";
+  if (condition.includes("cloud")) return "condition-clouds";
+  if (condition.includes("rain") || condition.includes("drizzle")) return "condition-rain";
+  if (condition.includes("thunder")) return "condition-storm";
+  if (condition.includes("snow")) return "condition-snow";
+
+  return "condition-clouds";
 }
 
-function getWeatherNote(temp, wind, description) {
-  const text = description.toLowerCase();
+function getAqiLabel(aqi) {
+  const labels = {
+    1: "Good",
+    2: "Fair",
+    3: "Moderate",
+    4: "Poor",
+    5: "Very Poor"
+  };
 
-  if (text.includes("rain")) return "Grab the galoshes — it’s wet out there.";
-  if (text.includes("storm") || text.includes("thunder")) return "Keep one eye on the sky today. Storms can change plans quickly.";
-  if (temp >= 90) return "It’s a hot one. Shade, water, and common sense go a long way.";
-  if (temp <= 35) return "Bundle up. This is the kind of cold that sneaks into your sleeves.";
-  if (wind >= 20) return "Hold onto your hat — it’s breezier than it may look.";
-  if (text.includes("clear")) return "Pretty nice setup today. A good day to enjoy the sky.";
-  return "Nothing too dramatic right now. A good day to check the forecast before heading out.";
-}
-
-function getVehicleTip(temp, wind, description) {
-  const text = description.toLowerCase();
-
-  if (text.includes("rain") || text.includes("storm")) return "Allow extra stopping distance and check wipers before heading out.";
-  if (temp >= 90) return "Heat can be hard on tires and batteries. Avoid leaving pets, drinks, or electronics in the car.";
-  if (temp <= 35) return "Cold weather can affect tire pressure and battery strength.";
-  if (wind >= 20) return "Expect stronger gusts on highways, bridges, and open roads.";
-
-  return "Driving conditions look generally manageable right now.";
-}
-
-function getAirQuality(aqi) {
-  if (!aqi) return "Unavailable";
-  if (aqi === 1) return "Good";
-  if (aqi === 2) return "Fair";
-  if (aqi === 3) return "Moderate";
-  if (aqi === 4) return "Poor";
-  if (aqi === 5) return "Very Poor";
-  return "Unavailable";
+  return labels[aqi] || "Unavailable";
 }
 
 function formatTime(timestamp) {
-  return new Date(timestamp * 1000).toLocaleTimeString([], {
+  return new Date(timestamp * 1000).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit"
   });
 }
 
-function showMessage(title, message) {
-  document.getElementById("weatherResult").innerHTML = `
-    <div class="welcome-card">
-      <div class="welcome-icon">🌤️</div>
-      <h2>${title}</h2>
-      <p>${message}</p>
-    </div>
-  `;
+function formatPlace(place) {
+  return [place.name, place.state, place.country].filter(Boolean).join(", ");
 }
 
-function saveLocation(city) {
-  let saved = JSON.parse(localStorage.getItem("savedWeatherLocations")) || [];
-
-  if (!saved.includes(city)) {
-    saved.push(city);
-    localStorage.setItem("savedWeatherLocations", JSON.stringify(saved));
-  }
-
-  renderSavedLocations();
+function showSections() {
+  [
+    "currentSection",
+    "briefSection",
+    "rainTimingSection",
+    "forecastSection",
+    "lifestyleSection",
+    "radarSection",
+    "detailsSection"
+  ].forEach(id => document.getElementById(id).classList.remove("hidden"));
 }
 
-function renderSavedLocations() {
-  const container = document.getElementById("savedLocations");
-  if (!container) return;
+function debounce(callback, delay) {
+  let timeout;
 
-  const saved = JSON.parse(localStorage.getItem("savedWeatherLocations")) || [];
-
-  container.innerHTML = saved.map(city => `
-    <button onclick="loadSavedLocation('${city}')">${city}</button>
-  `).join("");
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => callback(...args), delay);
+  };
 }
-
-function loadSavedLocation(city) {
-  document.getElementById("cityInput").value = city;
-  getWeather();
-}
-
-function openContactForm() {
-  document.getElementById("contactModal").classList.add("active");
-}
-
-function closeContactForm() {
-  document.getElementById("contactModal").classList.remove("active");
-}
-
-document.getElementById("contactForm").addEventListener("submit", async function(e) {
-  e.preventDefault();
-
-  const status = document.getElementById("formStatus");
-
-  if (contactAccessKey === "PASTE_YOUR_WEB3FORMS_ACCESS_KEY_HERE") {
-    status.textContent = "Contact form needs a Web3Forms access key before it can send.";
-    return;
-  }
-
-  const formData = new FormData(this);
-  formData.append("access_key", contactAccessKey);
-  formData.append("subject", "New message from Your Local Weatherman");
-
-  status.textContent = "Sending...";
-
-  try {
-    const response = await fetch("https://api.web3forms.com/submit", {
-      method: "POST",
-      body: formData
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      status.textContent = "Thanks! Your message has been sent.";
-      this.reset();
-    } else {
-      status.textContent = "Something went wrong. Please try again.";
-    }
-  } catch {
-    status.textContent = "Unable to send message right now.";
-  }
-});
