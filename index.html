@@ -3,219 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>Your Local Weatherman | Simple Local Weather Guidance</title>
-  <meta name="description" content="Fast, friendly local weather guidance with current conditions, hourly forecast, daily outlook, radar, alerts, and practical tips for your day." />
-  <meta name="theme-color" content="#dff4ff" />
-
+  <title>Your Local Weatherman</title>
+  <meta name="description" content="Simple, calm, practical local weather guidance for real life." />
+  <meta name="theme-color" content="#e9f7ff" />
   <link rel="stylesheet" href="styles.css" />
-
-  <!-- Leaflet Map CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIINfQhdWqp3G9FxXncwKfk7fwA0UXpL5Xw="
-    crossorigin=""
-  />
-
-  <!-- Favicon fallback -->
-  <link rel="icon" href="assets/logo.png" />
-
-  <!-- Feather Icons -->
+  <link rel="icon" href="logo.png" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 </head>
-
 <body>
   <header class="hero">
-    <div class="hero-overlay"></div>
-    <img src="assets/hero.jpg" alt="Beautiful sunrise landscape" class="hero-image" />
-
-    <div class="hero-content">
-      <img src="assets/logo.png" alt="Your Local Weatherman logo" class="logo" />
-      <p class="eyebrow">Plain-English weather for real life</p>
+    <img src="assets/hero.jpg" alt="Sunrise over flowers and open landscape" class="hero-bg" />
+    <div class="hero-shade"></div>
+    <div class="hero-inner">
+      <img src="logo.png" alt="Your Local Weatherman logo" class="main-logo" />
+      <p class="kicker">Plain-English weather for real life</p>
       <h1>Your Local Weatherman</h1>
-      <p class="hero-copy">
-        Current weather, hourly details, radar, alerts, and simple guidance for your day.
-      </p>
-
-      <div class="search-card">
-        <div class="search-row">
-          <input
-            id="locationInput"
-            type="text"
-            placeholder="Enter ZIP or city, state"
-            aria-label="Enter ZIP code or city"
-          />
-          <button id="searchBtn" type="button">
-            <i data-feather="search"></i>
-            Search
-          </button>
+      <p class="hero-subhead">Current conditions, hourly forecast, radar, alerts, and simple guidance for your day.</p>
+      <div class="search-box">
+        <div class="search-line">
+          <input id="locationInput" type="text" placeholder="Enter ZIP or city, state" />
+          <button id="searchBtn" type="button"><i data-feather="search"></i>Search</button>
         </div>
-
-        <button id="geoBtn" class="secondary-btn" type="button">
-          <i data-feather="map-pin"></i>
-          Use My Location
-        </button>
-
-        <p id="statusMessage" class="status-message">Enter a city or ZIP to get started.</p>
+        <button id="geoBtn" class="ghost-btn" type="button"><i data-feather="map-pin"></i>Use My Location</button>
+        <p id="statusMessage" class="status">Enter a city or ZIP to get started.</p>
       </div>
     </div>
   </header>
 
-  <main>
-    <section id="weatherSection" class="weather-section hidden">
-      <div class="section-header">
-        <div>
-          <p class="eyebrow">Local Forecast</p>
-          <h2 id="locationName">Weather</h2>
-          <p id="updatedTime" class="muted"></p>
-        </div>
-        <button id="saveFavoriteBtn" class="save-btn" type="button">
-          <i data-feather="heart"></i>
-          Save Place
-        </button>
-      </div>
-
-      <div id="alertsContainer" class="alerts-container"></div>
-
-      <section class="current-grid">
-        <article class="current-card">
-          <div>
-            <p class="card-label">Right Now</p>
-            <h3 id="currentTemp">--°</h3>
-            <p id="currentDescription">Loading...</p>
-          </div>
-          <img id="currentIcon" alt="Current weather icon" />
-        </article>
-
-        <article class="note-card">
-          <p class="card-label">Weatherman's Note</p>
-          <h3 id="weathermanNoteTitle">Today's take</h3>
-          <p id="weathermanNote">Loading your practical forecast guidance.</p>
-        </article>
-
-        <article class="mini-card">
-          <i data-feather="wind"></i>
-          <p class="card-label">Wind</p>
-          <strong id="windValue">-- mph</strong>
-        </article>
-
-        <article class="mini-card">
-          <i data-feather="droplet"></i>
-          <p class="card-label">Humidity</p>
-          <strong id="humidityValue">--%</strong>
-        </article>
-
-        <article class="mini-card">
-          <i data-feather="sunrise"></i>
-          <p class="card-label">Sunrise</p>
-          <strong id="sunriseValue">--</strong>
-        </article>
-
-        <article class="mini-card">
-          <i data-feather="sunset"></i>
-          <p class="card-label">Sunset</p>
-          <strong id="sunsetValue">--</strong>
-        </article>
-      </section>
-
-      <section id="favoritesSection" class="favorites-section hidden">
-        <div class="section-header small">
-          <div>
-            <p class="eyebrow">Saved</p>
-            <h2>My Favorite Places</h2>
-          </div>
-          <button id="clearFavoritesBtn" class="text-btn" type="button">Clear</button>
-        </div>
-        <div id="favoritesList" class="favorites-list"></div>
-      </section>
-
-      <section class="content-grid">
-        <article class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Next 12 Hours</p>
-              <h2>Hourly Forecast</h2>
-            </div>
-          </div>
-          <div id="hourlyForecast" class="hourly-scroll"></div>
-        </article>
-
-        <article class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">This Week</p>
-              <h2>Daily Outlook</h2>
-            </div>
-          </div>
-          <div id="dailyForecast" class="daily-list"></div>
-        </article>
-      </section>
-
-      <section class="content-grid">
-        <article class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Live View</p>
-              <h2>Weather Map</h2>
-            </div>
-            <select id="mapLayerSelect" aria-label="Choose weather map layer">
-              <option value="precipitation_new">Precipitation</option>
-              <option value="clouds_new">Clouds</option>
-              <option value="wind_new">Wind</option>
-              <option value="temp_new">Temperature</option>
-            </select>
-          </div>
-          <div id="weatherMap"></div>
-          <p class="muted map-note">Map layers are powered by OpenWeather and may load a moment after the base map.</p>
-        </article>
-
-        <article class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Real Life</p>
-              <h2>Simple Guidance</h2>
-            </div>
-          </div>
-
-          <div class="guidance-grid">
-            <div class="guidance-card">
-              <i data-feather="truck"></i>
-              <strong>Vehicle Prep</strong>
-              <p id="vehicleGuidance">Loading...</p>
-            </div>
-            <div class="guidance-card">
-              <i data-feather="home"></i>
-              <strong>Home Readiness</strong>
-              <p id="homeGuidance">Loading...</p>
-            </div>
-            <div class="guidance-card">
-              <i data-feather="coffee"></i>
-              <strong>Outdoor Plans</strong>
-              <p id="outdoorGuidance">Loading...</p>
-            </div>
-            <div class="guidance-card">
-              <i data-feather="umbrella"></i>
-              <strong>Best Window Today</strong>
-              <p id="bestWindowGuidance">Loading...</p>
-            </div>
-          </div>
-        </article>
-      </section>
+  <main id="app" class="app hidden">
+    <section class="top-panel">
+      <div><p class="kicker blue">Local Forecast</p><h2 id="locationName">Weather</h2><p id="updatedTime" class="muted"></p></div>
+      <button id="saveFavoriteBtn" class="save-btn" type="button"><i data-feather="heart"></i>Save Place</button>
+    </section>
+    <section id="alertsContainer" class="alerts"></section>
+    <section class="weather-grid">
+      <article class="current-card"><div><p class="label">Right Now</p><div id="currentTemp" class="big-temp">--°</div><p id="currentDescription" class="condition">Loading...</p></div><img id="currentIcon" alt="Current weather icon" class="weather-icon" /></article>
+      <article class="note-card"><p class="label">Weatherman's Note</p><h3>Today’s Take</h3><p id="weathermanNote">Loading your practical forecast guidance.</p></article>
+      <article class="stat-card"><i data-feather="wind"></i><p class="label">Wind</p><strong id="windValue">-- mph</strong></article>
+      <article class="stat-card"><i data-feather="droplet"></i><p class="label">Humidity</p><strong id="humidityValue">--%</strong></article>
+      <article class="stat-card"><i data-feather="sunrise"></i><p class="label">Sunrise</p><strong id="sunriseValue">--</strong></article>
+      <article class="stat-card"><i data-feather="sunset"></i><p class="label">Sunset</p><strong id="sunsetValue">--</strong></article>
+    </section>
+    <section id="favoritesPanel" class="panel hidden"><div class="panel-title"><div><p class="kicker blue">Saved</p><h2>My Favorite Places</h2></div><button id="clearFavoritesBtn" class="link-btn" type="button">Clear</button></div><div id="favoritesList" class="favorites-list"></div></section>
+    <section class="two-col">
+      <article class="panel"><div class="panel-title"><div><p class="kicker blue">Next 12 Hours</p><h2>Hourly Forecast</h2></div></div><div id="hourlyForecast" class="hourly-row"></div></article>
+      <article class="panel"><div class="panel-title"><div><p class="kicker blue">This Week</p><h2>Daily Outlook</h2></div></div><div id="dailyForecast" class="daily-list"></div></article>
+    </section>
+    <section class="two-col">
+      <article class="panel"><div class="panel-title"><div><p class="kicker blue">Live View</p><h2>Radar & Map</h2></div><select id="mapLayerSelect"><option value="precipitation_new">Precipitation</option><option value="clouds_new">Clouds</option><option value="wind_new">Wind</option><option value="temp_new">Temperature</option></select></div><div id="weatherMap"></div><p class="muted small">If a weather layer takes a moment, the base map should still appear first.</p></article>
+      <article class="panel"><div class="panel-title"><div><p class="kicker blue">Real Life</p><h2>Simple Guidance</h2></div></div><div class="guidance-grid"><div class="guide-card"><i data-feather="truck"></i><strong>Vehicle Prep</strong><p id="vehicleGuidance">Loading...</p></div><div class="guide-card"><i data-feather="home"></i><strong>Home Readiness</strong><p id="homeGuidance">Loading...</p></div><div class="guide-card"><i data-feather="coffee"></i><strong>Outdoor Plans</strong><p id="outdoorGuidance">Loading...</p></div><div class="guide-card"><i data-feather="umbrella"></i><strong>Best Window Today</strong><p id="bestWindowGuidance">Loading...</p></div></div></article>
     </section>
   </main>
-
-  <footer class="site-footer">
-    <p>© <span id="year"></span> Your Local Weatherman. Built for simple, practical weather decisions.</p>
-  </footer>
-
-  <!-- Leaflet Map JS -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin="">
-  </script>
-
+  <footer class="footer"><p>© <span id="year"></span> Your Local Weatherman. Built for simple, practical weather decisions.</p></footer>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
